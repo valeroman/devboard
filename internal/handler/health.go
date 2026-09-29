@@ -1,4 +1,4 @@
-// Package handler health
+// Package handler provides HTTP handlers for the application.
 package handler
 
 import (
@@ -21,14 +21,14 @@ type healthResponse struct {
 }
 
 // ServerHTTP function
-func (handle *HealthHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (handle *HealthHandler) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
 	resp := healthResponse{
 		Status:  "ok",
 		Version: "1.0.0",
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)  // opcional
+	writer.WriteHeader(http.StatusOK) // opcional
 
 	if err := json.NewEncoder(writer).Encode(resp); err != nil {
 		return

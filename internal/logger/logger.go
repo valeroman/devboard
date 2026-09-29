@@ -1,4 +1,4 @@
-// Package logger provides configurable structured logging.
+// Package logger provides structured logging helpers for the application.
 package logger
 
 import (
@@ -35,7 +35,6 @@ func ProductionConfig() Config {
 // New creates a new slog logger using the provided configuration.
 func New(config Config) *slog.Logger {
 	out := config.Output
-
 	if out == nil {
 		out = os.Stdout
 	}

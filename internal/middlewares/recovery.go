@@ -14,9 +14,13 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 					stack := debug.Stack()
 
-					logger.ErrorContext(request.Context(), "panic recuperado", slog.Any("error", err),
+					logger.ErrorContext(
+						request.Context(),
+						"panic recuperado",
+						slog.Any("error", err),
 						slog.String("stack", string(stack)),
-						slog.String("path", request.URL.Path))
+						slog.String("path", request.URL.Path),
+					)
 
 					http.Error(writer, "error interno del servidor", http.StatusInternalServerError)
 				}
