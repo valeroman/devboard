@@ -39,7 +39,7 @@ func (server *Server) Start() error {
 	return server.httpServer.ListenAndServe()
 }
 
-// Metodo para regitrar un handler en una ruta
+// RegisterRoutes Metodo para regitrar un handler en una ruta
 func (server *Server) RegisterRoutes(pattern string, handler http.Handler) {
 	server.mux.Handle(pattern, handler)
 }
@@ -47,4 +47,9 @@ func (server *Server) RegisterRoutes(pattern string, handler http.Handler) {
 // ServeHTTP server
 func (server *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	server.mux.ServeHTTP(writer, request)
+}
+
+// Use Metodo
+func (server *Server) Use(middleware func(http.Handler) http.Handler) {
+	server.httpServer.Handler = middleware(server.httpServer.Handler)
 }
