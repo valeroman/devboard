@@ -2,8 +2,7 @@
 package main
 
 import (
-	"log"
-	"log/slog"
+	"os"
 
 	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/logger"
@@ -20,7 +19,7 @@ func main() {
 	logger := logger.New(logger.DefaultConfig())
 
 	// Aqui arranca el servidor
-	srv := server.New(":8090")
+	srv := server.New(":8090", logger)
 
 	srv.Use(middlewares.Recovery(logger))
 	srv.Use(middlewares.Logger(logger))
@@ -35,11 +34,10 @@ func main() {
 	// 	panic("error provocado para probar Recovery")
 	// }))
 
-	//log.Println("Servidor iniciado en :8090")
-	logger.Info("servidor iniciado", slog.String("addr", ":8090"))
-
 	if err := srv.Start(); err != nil {
-		log.Fatalf("error al iniciar el servidor %v", err)
+		logger.Error("error fatal", "error", err)
+		os.Exit(1)
+		//log.Fatalf("error al iniciar el servidor %v", err)
 	}
 
 }
