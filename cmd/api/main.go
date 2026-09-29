@@ -1,9 +1,10 @@
+// Package main api
 package main
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/server"
 )
 
@@ -11,11 +12,10 @@ func main() {
 	// Aqui arranca el servidor
 	srv := server.New(":8090")
 
-	srv.RegisterRoutes("GET /health", http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request){
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
-		writer.Write([]byte(`{"status": "ok"}`))
-	}))
+	healthHander := handler.NewHealtHandler()
+
+	srv.RegisterRoutes("GET /health", healthHander)
+	srv.RegisterRoutes("GET /ready", healthHander)
 
 	log.Println("Servidor iniciado en :8090")
 
@@ -23,5 +23,4 @@ func main() {
 		log.Fatalf("error al iniciar el servidor %v", err)
 	}
 
-	
 }
