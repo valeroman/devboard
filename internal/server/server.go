@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/valeroman/devboard/internal/middlewares"
 )
 
 // Server struct dependencies -> Encapsular al servidor http y sus dependencies
@@ -96,4 +98,9 @@ func (server *Server) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 // Use Metodo
 func (server *Server) Use(middleware func(http.Handler) http.Handler) {
 	server.httpServer.Handler = middleware(server.httpServer.Handler)
+}
+
+// UseChain cadena para middleware
+func (server *Server) UseChain(middlewaresParams ...middlewares.Middleware) {
+	server.httpServer.Handler = middlewares.Chain(server.httpServer.Handler, middlewaresParams...)
 }

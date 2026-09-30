@@ -1,4 +1,4 @@
-// middleware package
+// Package middlewares provides HTTP middleware composition helpers.
 package middlewares
 
 import (
