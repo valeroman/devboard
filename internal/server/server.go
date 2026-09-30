@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/valeroman/devboard/internal/middlewares"
 )
 
 // Server struct dependencies -> Encapsular al servidor http y sus dependencies
@@ -19,23 +21,30 @@ type Server struct {
 }
 
 // New create -> para crear un servidor nuevo
-func New(addr string, logger *slog.Logger) *Server {
+func New(addr string, opts ...Option) *Server {
+
+	cfg := defaultConfig()
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	mux := http.NewServeMux() // Crea un nuevo multiplexor o enrutador http
 
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: mux,
 
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       cfg.readTimeout,
+		WriteTimeout:      cfg.writeTimeout,
+		IdleTimeout:       cfg.idleTimeout,
+		ReadHeaderTimeout: cfg.readHeaderTimeout,
 	} // Crear una instancia del servidor http
 
 	return &Server{
 		httpServer: httpServer,
 		mux:        mux,
-		logger:     logger,
+		logger:     cfg.logger,
 	}
 }
 
@@ -89,4 +98,9 @@ func (server *Server) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 // Use Metodo
 func (server *Server) Use(middleware func(http.Handler) http.Handler) {
 	server.httpServer.Handler = middleware(server.httpServer.Handler)
+}
+
+// UseChain cadena para middleware
+func (server *Server) UseChain(middlewaresParams ...middlewares.Middleware) {
+	server.httpServer.Handler = middlewares.Chain(server.httpServer.Handler, middlewaresParams...)
 }
