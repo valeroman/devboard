@@ -4,12 +4,20 @@ package main
 import (
 	"os"
 
+	httpSwagger "github.com/swaggo/http-swagger"
+	_ "github.com/valeroman/devboard/docs"
 	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/logger"
 	"github.com/valeroman/devboard/internal/middlewares"
 	"github.com/valeroman/devboard/internal/server"
 )
 
+// @title Devboard API
+// @version 1.0
+// @description API REST para la gestión de proyectos
+// @contact.me Soporte Devboard RV
+// @host localhost:8090
+// @BasePath /api/v1
 func main() {
 
 	// logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -26,6 +34,7 @@ func main() {
 
 	healthHander := handler.NewHealtHandler()
 
+	srv.RegisterRoutes("GET /docs/", httpSwagger.WrapHandler)
 	srv.RegisterRoutes("GET /health", healthHander)
 	srv.RegisterRoutes("GET /ready", healthHander)
 
