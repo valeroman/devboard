@@ -36,6 +36,12 @@ func main() {
 	srv.Use(middlewares.Recovery(logger))
 	srv.Use(middlewares.Logger(logger))
 
+	// exampleHandler := middlewares.Chain(
+	// 	mainHandler,
+	// 	middlewares.Recovery(logger),
+	// 	middlewares.Logger(logger),
+	// )
+
 	healthHander := handler.NewHealtHandler()
 
 	srv.RegisterRoutes("GET /docs/", httpSwagger.WrapHandler)
