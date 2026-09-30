@@ -3,6 +3,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 	_ "github.com/valeroman/devboard/docs"
@@ -27,7 +28,10 @@ func main() {
 	logger := logger.New(logger.DefaultConfig())
 
 	// Aqui arranca el servidor
-	srv := server.New(":8090", logger)
+	srv := server.New(":8090",
+		server.Withlogger(logger),
+		server.WithReadTimeout(15*time.Second),
+	)
 
 	srv.Use(middlewares.Recovery(logger))
 	srv.Use(middlewares.Logger(logger))

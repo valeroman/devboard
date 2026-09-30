@@ -19,23 +19,30 @@ type Server struct {
 }
 
 // New create -> para crear un servidor nuevo
-func New(addr string, logger *slog.Logger) *Server {
+func New(addr string, opts ...Option) *Server {
+
+	cfg := defaultConfig()
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	mux := http.NewServeMux() // Crea un nuevo multiplexor o enrutador http
 
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: mux,
 
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       cfg.readTimeout,
+		WriteTimeout:      cfg.writeTimeout,
+		IdleTimeout:       cfg.idleTimeout,
+		ReadHeaderTimeout: cfg.readHeaderTimeout,
 	} // Crear una instancia del servidor http
 
 	return &Server{
 		httpServer: httpServer,
 		mux:        mux,
-		logger:     logger,
+		logger:     cfg.logger,
 	}
 }
 
