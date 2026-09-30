@@ -1,0 +1,93 @@
+package handler
+
+import (
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+
+	"github.com/valeroman/devboard/internal/domain"
+	"github.com/valeroman/devboard/internal/validator"
+)
+
+// errorResponse struct
+type errorResponse struct {
+	Error   string                      `json:"error"`
+	Details []validator.ValidationError `json:"details,omitempty"`
+}
+
+type ProblemDetails struct {
+	Type     string                      `json:"type"`
+	Title    string                      `json:"title"`
+	Status   int                         `json:"status"`
+	Details  string                      `json:"detail"`
+	Instance string                      `json:"instance"`
+	Errors   []validator.ValidationError `json:"error, omitempty"`
+}
+
+const problemBaseURL = "https://valeroman.dev/errors"
+
+// RespondError centralizado
+func RespondError(writer http.ResponseWriter, request *http.Request, logger *slog.Logger, err error) {
+	var problem ProblemDetails
+	problem.Instance = request.URL.Path
+
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		problem.Type = problemBaseURL + "/not-found"
+		problem.Title = "Recurso no encontrado"
+		problem.Status = http.StatusNotFound
+		problem.Details = err.Error()
+	case errors.Is(err, domain.ErrAlreadyExists):
+		problem.Type = problemBaseURL + "/conflict"
+		problem.Title = "El recurso ya existe"
+		problem.Status = http.StatusConflict
+		problem.Details = err.Error()
+	case errors.Is(err, domain.ErrUnauthorized):
+		problem.Type = problemBaseURL + "/unauthorized"
+		problem.Title = "No autorizado"
+		problem.Status = http.StatusUnauthorized
+		problem.Details = err.Error()
+	case errors.Is(err, domain.ErrForbidden):
+		problem.Type = problemBaseURL + "/forbidden"
+		problem.Title = "Recurso prohibido"
+		problem.Status = http.StatusForbidden
+		problem.Details = err.Error()
+	case errors.Is(err, domain.ErrInvalidInput):
+		problem.Type = problemBaseURL + "/bad-request"
+		problem.Title = "Solicitud no válida"
+		problem.Status = http.StatusBadRequest
+		problem.Details = err.Error()
+	default:
+		problem.Type = problemBaseURL + "/internal"
+		problem.Title = "Error interno del servidor"
+		problem.Status = http.StatusInternalServerError
+		problem.Details = "ha ocurrido un error inesperado"
+		logger.ErrorContext(request.Context(), "error no clasificado",
+			slog.Any("error", err),
+			slog.String("path", problem.Instance))
+	}
+
+	writer.Header().Set("Content-Type", "application/problem+json")
+	writer.WriteHeader(problem.Status)
+	json.NewEncoder(writer).Encode(problem)
+}
+
+// RespondValidationError responde errores de validación
+func RespondValidationError(writer http.ResponseWriter, errs []validator.ValidationError) {
+	respondJSON(writer, http.StatusBadRequest, errorResponse{
+		Error:   "datos de entrada inváñidos",
+		Details: errs,
+	})
+}
+
+// ResponseJSON envia una respuesta exitosa en formato JSON
+func ResponseJSON(writer http.ResponseWriter, status int, data any) {
+	respondJSON(writer, status, data)
+}
+
+func respondJSON(writer http.ResponseWriter, status int, data any) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(status)
+	json.NewEncoder(writer).Encode(data)
+}
