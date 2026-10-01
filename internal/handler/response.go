@@ -86,7 +86,7 @@ func RespondValidationError(writer http.ResponseWriter, errs []validator.Validat
 	})
 }
 
-// ResponseJSON envia una respuesta exitosa en formato JSON
+// RespondJSON envia una respuesta exitosa en formato JSON
 func RespondJSON(writer http.ResponseWriter, status int, data any) error {
 	return respondJSON(writer, status, data)
 }

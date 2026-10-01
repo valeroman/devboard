@@ -62,7 +62,8 @@ func TestUserRepository_GetByEmail_NotFound(t *testing.T) {
 	}
 }
 
-func TextUserReposotory_GetByID_Success(t *testing.T) {
+// TextUserReposotory_GetByID_Success
+func TextUserReposotoryGetByIDSuccess(t *testing.T) {
 	repo := NewUserRepository()
 	ctx := context.Background()
 

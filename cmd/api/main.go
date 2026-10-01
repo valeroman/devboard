@@ -3,6 +3,7 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
@@ -11,7 +12,10 @@ import (
 	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/logger"
 	"github.com/valeroman/devboard/internal/middlewares"
+	"github.com/valeroman/devboard/internal/repository/memory"
 	"github.com/valeroman/devboard/internal/server"
+	"github.com/valeroman/devboard/internal/usecase"
+	"github.com/valeroman/devboard/internal/validator"
 )
 
 // @title Devboard API
@@ -23,23 +27,28 @@ import (
 func main() {
 
 	// 1. Configuración del entorno
-	env := os.Getenv("GO_ENV")
-	slog.Info("entorno cargado", "GO_ENV", env)
-
 	// 2. Logger
-	var log *slog.Logger
-	if env == "production" {
-		log = logger.New(logger.ProductionConfig())
-	} else {
-		log = logger.New(logger.DefaultConfig())
-	}
+	log := setupLogger()
 
 	// 3. Dependencies compartidas
-	// validate := validator.New()
+
+	// Infrastructure: adapters
+	userRepo := memory.NewUserRepository()
+
+	// Use cases: lógica del negocio
+	userUC := usecase.NewUserUseCase(userRepo)
+
+	// Validación compartida
+	validate := validator.New()
+
+	// 4. Handlers
+	healthHandler := handler.NewHealtHandler()
+	userHandler := handler.NewUserHandler(userUC, validate, log)
+
 	// notifier := notification.NewLogNotifier(log)
 	// _ = notifier
 
-	// 4. Servidor con Functional options
+	// 5. Servidor con Functional options
 	// Aqui arranca el servidor
 	srv := server.New(":8090",
 		server.Withlogger(log),
@@ -47,12 +56,11 @@ func main() {
 		server.WithWriteTimeout(30*time.Second),
 	)
 
-	// 5. Handlers
-	healthHandler := handler.NewHealtHandler()
-
 	// 6. Registro de rutas
 	srv.RegisterRoutes("GET /docs/", httpSwagger.WrapHandler)
 	srv.RegisterRoutes("GET /health", healthHandler)
+	srv.RegisterRoutes("POST /api/v1/users", http.HandlerFunc(userHandler.Create))
+	srv.RegisterRoutes("GET /api/v1/users/{id}", http.HandlerFunc(userHandler.Get))
 
 	// 7. Middleware chain
 	srv.UseChain(
@@ -66,4 +74,12 @@ func main() {
 		os.Exit(1)
 	}
 
+}
+
+func setupLogger() *slog.Logger {
+	if os.Getenv("GO_ENV") == "production" {
+		return logger.New(logger.ProductionConfig())
+	}
+
+	return logger.New(logger.DefaultConfig())
 }
