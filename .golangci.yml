@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 version: "2"
 
 linters:
@@ -18,6 +19,9 @@ linters:
       severity: medium
 
   exclusions:
+    generated: lax
+    paths:
+      - "internal/repository/postgres/generated"
     rules:
       - path: "_test.go"
         linters:
@@ -27,6 +31,9 @@ formatters:
   enable:
     - gofmt
     - goimports
+  exclusions:
+    paths:
+      - "internal/repository/postgres/generated"
 
 run:
   timeout: 5m
