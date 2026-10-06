@@ -1,5 +1,26 @@
 basePath: /api/v1
 definitions:
+  domain.TaskStatus:
+    enum:
+    - todo
+    - in_progress
+    - done
+    type: string
+    x-enum-varnames:
+    - TaskStatusTodo
+    - TaskStatusInProgress
+    - TaskStatusDone
+  handler.PaginatedResponse-handler_taskResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/handler.taskResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   handler.ProblemDetails:
     properties:
       detail:
@@ -16,6 +37,28 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  handler.assignTaskRequest:
+    properties:
+      assignee_id:
+        type: string
+    required:
+    - assignee_id
+    type: object
+  handler.createTaskRequest:
+    properties:
+      description:
+        maxLength: 200
+        type: string
+      project_id:
+        type: string
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    required:
+    - project_id
+    - title
     type: object
   handler.createUserRequest:
     properties:
@@ -39,6 +82,34 @@ definitions:
         type: string
       version:
         type: string
+    type: object
+  handler.taskResponse:
+    properties:
+      assignee_id:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      status:
+        $ref: '#/definitions/domain.TaskStatus'
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handler.updateStatusRequest:
+    properties:
+      status:
+        $ref: '#/definitions/domain.TaskStatus'
+    required:
+    - status
     type: object
   handler.userResponse:
     properties:
@@ -76,6 +147,140 @@ paths:
       summary: Health check
       tags:
       - system
+  /projects/{id}/tasks:
+    get:
+      description: Retorna todas las tareas de un proyecto
+      parameters:
+      - description: ID del proyecto
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.PaginatedResponse-handler_taskResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ProblemDetails'
+      summary: Listar tareas del proyecto
+      tags:
+      - tasks
+  /tasks:
+    post:
+      consumes:
+      - application/json
+      description: Registra una nueva tarea en el sistema
+      parameters:
+      - description: Datos de la tarea
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.taskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ProblemDetails'
+      summary: Crear tarea
+      tags:
+      - tasks
+  /tasks/{id}:
+    get:
+      description: Obtiene una tarea por su ID
+      parameters:
+      - description: ID de la tarea
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.taskResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ProblemDetails'
+      summary: Obtener tarea por ID
+      tags:
+      - tasks
+  /tasks/{id}/assign:
+    put:
+      consumes:
+      - application/json
+      description: Asigna una tarea a un miembro del equipo
+      parameters:
+      - description: ID de la tarea
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID del asignado
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.assignTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.taskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ProblemDetails'
+      summary: Asignar tarea
+      tags:
+      - tasks
+  /tasks/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Mueve una tarea a un nuevo estado del tablero
+      parameters:
+      - description: ID de la tarea
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Nuevo estado
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.updateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.taskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ProblemDetails'
+      summary: Actualizar estado de tarea
+      tags:
+      - tasks
   /users:
     post:
       consumes:

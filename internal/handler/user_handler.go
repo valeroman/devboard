@@ -117,5 +117,4 @@ func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 			r.URL.Path,
 		)
 	}
-
 }
