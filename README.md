@@ -131,27 +131,44 @@ Frameworks & Drivers --> Interface Adapters --> Use Cases --> Entities
 **¿Qué es un Mutex?**
 Mutex significa _mutual exclusion_, es decir, exclusión mutua. Sirve para que solo una goroutine acceda a un recurso compartido a la vez, evitando ese error de acceso concurrente.
 
-## CQRS
+---
 
-- CQRS **(Command Query Responsibility Segregation)**
-  - Separación de responsabilidades entre comandos y consultas.
+# Base de datos y migraciones
 
-La idea principal es separar las operaciones que modifican información de las operaciones que solamente lee información
+## Dependencias
 
-Se separan las operaciones en dos grupos por intención.
+Agregar las librerías de Postgres (pgx) y migraciones al proyecto:
 
-**Commands:** Son acciones que buscan cambiar el estado del sistema.
+```bash
+go get github.com/jackc/pgx/v5
+go get -tags 'postgres' github.com/golang-migrate/migrate/v4
+go get github.com/golang-migrate/migrate/v4/database/pgx/v5
+go get github.com/golang-migrate/migrate/v4/source/file
+```
 
-- CreateUser
-- UpdateUser
-- DeleteUser
-- Assigntask
-- Complete Task
+## Herramientas de línea de comandos (CLI)
 
-**Queries:** Son operaciones que únicamente consultan datos
+Instalar `migrate` (con soporte para Postgres) y `sqlc` como comandos globales:
 
-- GetUserByID
-- ListUser
-- GetTaskDetails
-- SearchTask
-- GetDashboard
+```bash
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+```
+
+## Verificar instalaciones
+
+```bash
+migrate --version
+sqlc version
+```
+
+## Error en migraciones
+
+```bash
+$ make migrate-up
+migrate -path ./migrations -database "postgresql://postgres:password@localhost:5433/devboard?sslmode=disable" up
+error: Dirty database version 2. Fix and force version.
+make: *** [migrate-up] Error 1
+
+$ migrate -path ./migrations -database "postgresql://postgres:password@localhost:5433/devboard?sslmode=disable" force 1
+```
