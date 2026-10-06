@@ -130,3 +130,28 @@ Frameworks & Drivers --> Interface Adapters --> Use Cases --> Entities
 
 **¿Qué es un Mutex?**
 Mutex significa _mutual exclusion_, es decir, exclusión mutua. Sirve para que solo una goroutine acceda a un recurso compartido a la vez, evitando ese error de acceso concurrente.
+
+## CQRS
+
+- CQRS **(Command Query Responsibility Segregation)**
+  - Separación de responsabilidades entre comandos y consultas.
+
+La idea principal es separar las operaciones que modifican información de las operaciones que solamente lee información
+
+Se separan las operaciones en dos grupos por intención.
+
+**Commands:** Son acciones que buscan cambiar el estado del sistema.
+
+- CreateUser
+- UpdateUser
+- DeleteUser
+- Assigntask
+- Complete Task
+
+**Queries:** Son operaciones que únicamente consultan datos
+
+- GetUserByID
+- ListUser
+- GetTaskDetails
+- SearchTask
+- GetDashboard

@@ -81,7 +81,7 @@ func RespondError(writer http.ResponseWriter, request *http.Request, logger *slo
 // RespondValidationError responde errores de validación
 func RespondValidationError(writer http.ResponseWriter, errs []validator.ValidationError) error {
 	return respondJSON(writer, http.StatusBadRequest, errorResponse{
-		Error:   "datos de entrada inváñidos",
+		Error:   "datos de entrada inválidos",
 		Details: errs,
 	})
 }
