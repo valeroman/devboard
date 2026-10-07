@@ -2,13 +2,13 @@
 APP_NAME=devboard
 MAIN_PATH=./cmd/api
 MIGRATE_PATH=./migrations
-DB_URL=postgresql://postgres:password@localhost:5432/devboard?sslmode=disable
+DB_URL=postgresql://postgres:password@localhost:5433/devboard?sslmode=disable
 
 .PHONY: run build test lint migrate-up migrate-down generate tidy help docs
 
 ## run: correr la aplicación
 run:
-	GO_ENV=development go run $(MAIN_PATH)/main.go
+	GO_ENV=development DATABASE_URL=${DB_URL} go run $(MAIN_PATH)/main.go
 
 ## build: compilar el binario
 build:
@@ -22,6 +22,10 @@ test:
 lint:
 	golangci-lint run ./...
 
+## migrate-create: crea una nueva migración (OJO para usarlo su uso es: make migrate-create name=create_users)
+migrate-create:
+	migrate create -ext sql -dir $(MIGRATE_PATH) -seq $(name)
+
 ## migrate-up: aplicar todas las migraciones pendientes
 migrate-up:
 	migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" up
@@ -32,6 +36,7 @@ migrate-down:
 
 ## generate: correr go generate en todo el proyecto
 generate:
+	sqlc generate
 	go generate ./...
 
 ## tidy: limpiar y verificar dependencias
