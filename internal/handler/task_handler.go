@@ -103,7 +103,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.usecase.CreateTask(r.Context(), req.ProjectID, req.Title, req.Description, "system")
+	task, err := h.usecase.CreateTask(r.Context(), req.ProjectID, req.Title, req.Description, "4de6a03a-3b67-4175-b84e-21000b5ca471")
 	if err != nil {
 		RespondError(w, r, h.logger, err)
 		return
