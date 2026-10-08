@@ -10,6 +10,7 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger"
 	_ "github.com/valeroman/devboard/docs"
+	"github.com/valeroman/devboard/internal/cache"
 	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/logger"
 	"github.com/valeroman/devboard/internal/middlewares"
@@ -32,6 +33,7 @@ func main() {
 	log := setupLogger()
 
 	dbURL := os.Getenv("DATABASE_URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
 
 	// Crear el pool de conexiones
 	pool, err := pgrepo.NewPool(context.Background(), pgrepo.Config{
@@ -50,6 +52,27 @@ func main() {
 	defer pool.Close()
 
 	log.Info("conexion a base de datos establecida")
+
+	redisClient, err := cache.NewClient(context.Background(), cache.Config{
+		Addr:    redisAddr,
+		Timeout: 5 * time.Second,
+	})
+
+	if err != nil {
+		log.Error("no se pudo conectar a Redis", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Error(
+				"no se pudo cerrar la conexión a Redis",
+				slog.Any("error", err),
+			)
+		}
+	}()
+
+	log.Info("conexion a Redis establecida")
 
 	// 3. Dependencies compartidas
 
