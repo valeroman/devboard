@@ -1,4 +1,4 @@
-// Package auth
+// Package auth configuration
 package auth
 
 import (
@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
@@ -124,14 +125,37 @@ func parseHash(encodedHash string) (*argon2Params, []byte, []byte, error) {
 		return nil, nil, nil, ErrInvalidPasswordHash
 	}
 
-	params.saltLength = uint32(len(salt))
+	params.saltLength, err = intToUint32(len(salt), "saltLength")
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
 	if err != nil {
 		return nil, nil, nil, ErrInvalidPasswordHash
 	}
 
-	params.keyLength = uint32(len(hash))
+	params.keyLength, err = intToUint32(len(hash), "keyLength")
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	return params, salt, hash, nil
+}
+
+// intToUint32
+func intToUint32(value int, field string) (uint32, error) {
+	if value < 0 {
+		return 0, fmt.Errorf("%s no puede ser negativo", field)
+	}
+
+	if uint64(value) > uint64(math.MaxUint32) {
+		return 0, fmt.Errorf(
+			"%s excede el máximo permitido para uint32: %d",
+			field,
+			value,
+		)
+	}
+
+	return uint32(value), nil
 }

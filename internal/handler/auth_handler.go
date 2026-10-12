@@ -1,4 +1,4 @@
-// Package handler
+// Package handler configuration
 package handler
 
 import (
@@ -42,12 +42,12 @@ type loginRequest struct {
 
 // refreshRequest define el body para renovar tokens
 type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate="required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 // logoutRequest define el body para logout
 type logoutRequest struct {
-	RefreshToken string `json:"refresh_token" validate="required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 // tokenResponse es la respuesta estandar cuandi se emiten tokens

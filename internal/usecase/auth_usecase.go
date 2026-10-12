@@ -96,7 +96,7 @@ func (uc *AuthUseCase) generateTokenPair(ctx context.Context, userID, email, rol
 		userID,
 		uc.refreshTokenDuration,
 	); err != nil {
-		return nil, fmt.Errorf("guardando refresh token: w%", err)
+		return nil, fmt.Errorf("guardando refresh token: %w", err)
 	}
 
 	return &AuthTokens{
@@ -165,7 +165,7 @@ func (uc *AuthUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 	return tokens, nil
 }
 
-//Logout revoca el refresh token del usuario
+// Logout revoca el refresh token del usuario
 func (uc *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
 	claims, err := uc.jwtManager.VerifyToken(refreshToken)
 	if err != nil {

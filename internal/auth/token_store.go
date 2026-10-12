@@ -91,7 +91,7 @@ func (s *TokenStore) RevokedRefreshToken(ctx context.Context, tokenID string, tt
 }
 
 // RevokeAllUserTokens revoca todos los refresh tokens de un usuario para aplicaciones medianas o chicas
-func (s *TokenStore) RevokeAllUserTokens(ctx context.Context, userId string, ttl time.Duration) error {
+func (s *TokenStore) RevokeAllUserTokens(ctx context.Context, userID string, ttl time.Duration) error {
 	var cursor uint64
 	pattern := "refresh:*"
 
@@ -107,7 +107,7 @@ func (s *TokenStore) RevokeAllUserTokens(ctx context.Context, userId string, ttl
 				continue
 			}
 
-			if storedUserID == userId {
+			if storedUserID == userID {
 				tokenID := key[len("refresh:"):]
 				_ = s.RevokedRefreshToken(ctx, tokenID, ttl)
 			}
