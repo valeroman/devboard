@@ -1,3 +1,4 @@
+// Package handler de tareas
 package handler
 
 import (
@@ -7,6 +8,7 @@ import (
 	"time"
 
 	"github.com/valeroman/devboard/internal/domain"
+	"github.com/valeroman/devboard/internal/middlewares"
 	"github.com/valeroman/devboard/internal/usecase"
 	"github.com/valeroman/devboard/internal/validator"
 )
@@ -80,6 +82,7 @@ func toTaskResponse(t *domain.Task) taskResponse {
 // @Param request body createTaskRequest true "Datos de la tarea"
 // @Success 201 {object} taskResponse
 // @Failure 400 {object} ProblemDetails
+// @Security BearerAuth
 // @Router /tasks [post]
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req createTaskRequest
@@ -103,7 +106,14 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.usecase.CreateTask(r.Context(), req.ProjectID, req.Title, req.Description, "4de6a03a-3b67-4175-b84e-21000b5ca471")
+	userID := middlewares.GetUserID(r)
+	if userID == "" {
+		RespondError(w, r, h.logger, domain.ErrUnauthorized)
+		return
+	}
+
+	// Usamos userID real
+	task, err := h.usecase.CreateTask(r.Context(), req.ProjectID, req.Title, req.Description, userID)
 	if err != nil {
 		RespondError(w, r, h.logger, err)
 		return
@@ -129,6 +139,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "ID de la tarea"
 // @Success 200 {object} taskResponse
 // @Failure 404 {object} ProblemDetails
+// @Security BearerAuth
 // @Router /tasks/{id} [get]
 func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
@@ -162,6 +173,7 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} PaginatedResponse[taskResponse]
 // @Failure 404 {object} ProblemDetails
 // @Router /projects/{id}/tasks [get]
+// @Security BearerAuth
 func (h *TaskHandler) ListByProject(w http.ResponseWriter, r *http.Request) {
 	projectID := r.PathValue("id")
 
@@ -200,6 +212,7 @@ func (h *TaskHandler) ListByProject(w http.ResponseWriter, r *http.Request) {
 // @Param request body assignTaskRequest true "ID del asignado"
 // @Success 200 {object} taskResponse
 // @Failure 400 {object} ProblemDetails
+// @Security BearerAuth
 // @Router /tasks/{id}/assign [put]
 func (h *TaskHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
@@ -251,6 +264,7 @@ func (h *TaskHandler) Assign(w http.ResponseWriter, r *http.Request) {
 // @Param request body updateStatusRequest true "Nuevo estado"
 // @Success 200 {object} taskResponse
 // @Failure 400 {object} ProblemDetails
+// @Security BearerAuth
 // @Router /tasks/{id}/status [put]
 func (h *TaskHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
