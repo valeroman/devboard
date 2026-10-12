@@ -314,6 +314,8 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/handler.ProblemDetails'
+      security:
+      - BearerAuth: []
       summary: Listar tareas del proyecto
       tags:
       - tasks
@@ -340,6 +342,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/handler.ProblemDetails'
+      security:
+      - BearerAuth: []
       summary: Crear tarea
       tags:
       - tasks
@@ -363,6 +367,8 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/handler.ProblemDetails'
+      security:
+      - BearerAuth: []
       summary: Obtener tarea por ID
       tags:
       - tasks
@@ -394,6 +400,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/handler.ProblemDetails'
+      security:
+      - BearerAuth: []
       summary: Asignar tarea
       tags:
       - tasks
@@ -425,6 +433,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/handler.ProblemDetails'
+      security:
+      - BearerAuth: []
       summary: Actualizar estado de tarea
       tags:
       - tasks
@@ -477,4 +487,10 @@ paths:
       summary: Obtener usuario
       tags:
       - users
+securityDefinitions:
+  BearerAuth:
+    description: 'Escribe el token con el formato: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

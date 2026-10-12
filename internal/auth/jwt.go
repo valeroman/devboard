@@ -14,7 +14,7 @@ import (
 var ErrTokenExpired = errors.New("token expirado")
 
 // ErrTokenInvalid indica que el token tiene firma inválida
-var ErrTokenInvalid = errors.New("token inválido}")
+var ErrTokenInvalid = errors.New("token inválido")
 
 // Claims define el contenido del JWT
 type Claims struct {
@@ -75,16 +75,17 @@ func (m *JWTManager) VerifyToken(tokenString string) (*Claims, error) {
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, ErrTokenInvalid
+			return nil, ErrTokenExpired
 		}
+		return nil, ErrTokenInvalid
 	}
 
-	Claims, ok := token.Claims.(*Claims)
+	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
 		return nil, ErrTokenInvalid
 	}
 
-	return Claims, nil
+	return claims, nil
 }
 
 // generateToken crea un token JWT firmado con los claims datos
@@ -103,7 +104,7 @@ func (m *JWTManager) generateToken(userID, email, role string, duration time.Dur
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	signed, err := token.SignedString(m.cfg.SecretKey)
 
@@ -117,5 +118,5 @@ func (m *JWTManager) generateToken(userID, email, role string, duration time.Dur
 func generateTokenID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[6:8], b[6:8], b[8:10], b[10:])
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
