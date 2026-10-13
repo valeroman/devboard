@@ -33,7 +33,6 @@ import (
 // @name Authorization
 // @description Escribe el token con el formato: Bearer {token}
 
-
 func main() {
 
 	// 1. Configuración del entorno
