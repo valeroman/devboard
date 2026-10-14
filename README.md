@@ -172,3 +172,7 @@ make: *** [migrate-up] Error 1
 
 $ migrate -path ./migrations -database "postgresql://postgres:password@localhost:5433/devboard?sslmode=disable" force 1
 ```
+
+```bash
+migrate -path ./migrations -database "postgresql://postgres:password@localhost:5433/devboard?sslmode=disable" force 2
+```
