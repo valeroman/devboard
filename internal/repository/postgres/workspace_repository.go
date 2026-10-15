@@ -200,7 +200,6 @@ func (r *WorkspaceRepository) RemoveMember(ctx context.Context, workspaceID, use
 		UserID:      pgUserID,
 	})
 
-	
 }
 
 // toDomainWorkspace convierte el modelo generado por sqlc al modelo de dominio

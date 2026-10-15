@@ -85,7 +85,7 @@ func (uc *WorkspaceUseCase) AddMember(ctx context.Context, workspaceID, requeste
 		return nil, err
 	}
 
-	if role.IsValid() {
+	if !role.IsValid() {
 		return nil, fmt.Errorf("rol inválido %q: %w", role, domain.ErrInvalidInput)
 	}
 

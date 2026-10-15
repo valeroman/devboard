@@ -160,7 +160,7 @@ func (h *ProjectHandler) ListByWorkspace(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := RespondJSON(w, http.StatusOK, PaginatedResponse[projectResponse]{
-		Data: response,
+		Data:    response,
 		HasMore: false,
 	}); err != nil {
 		h.logger.ErrorContext(r.Context(), "error escribiendo respuesta JSON",
