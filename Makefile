@@ -2,7 +2,7 @@
 APP_NAME=devboard
 MAIN_PATH=./cmd/api
 MIGRATE_PATH=./migrations
-DB_URL=postgresql://postgres:password@localhost:5433/devboard?sslmode=disable
+DB_URL=postgresql://postgres:password@localhost:5434/devboard?sslmode=disable
 JWT=dev-secret-key-change-in-production-min-32-chars$$
 
 .PHONY: run build test lint migrate-up migrate-down generate tidy help docs
