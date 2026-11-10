@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/valeroman/devboard/internal/domain"
 	"github.com/valeroman/devboard/services/identity/internal/auth"
+	"github.com/valeroman/devboard/services/identity/internal/domain"
 )
 
 // authUserRepository define lo que el AuthUsecase necesita del repositorio de usuarios
