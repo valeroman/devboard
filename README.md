@@ -176,3 +176,21 @@ $ migrate -path ./migrations -database "postgresql://postgres:password@localhost
 ```bash
 migrate -path ./migrations -database "postgresql://postgres:password@localhost:5433/devboard?sslmode=disable" force 2
 ```
+
+# Comando para migrag una tabla de una bd a otra bd
+```
+docker compose exec -T postgres \
+> pg_dump \
+> -U postgres \
+> -d devboard \
+> --data-only \
+> --table=public.users \
+> --column-inserts \
+> --no-owner \
+> --no-privileges \
+> | docker compose exec -T identity-postgres \
+pipe> psql \
+pipe> -U identity \
+pipe> -d identity
+
+```
