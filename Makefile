@@ -69,7 +69,7 @@ docs:
 
 ## run-identity: Inicia el servidor de identity service
 run-identity:
-	IDENTITY_HTTP_ADDR=8091 \
+	IDENTITY_HTTP_ADDR=:8091 \
 	IDENTITY_DATABASE_URL=${DB_URL} \
 	JWT_SECRET=$(JWT) \
 	REDIS_ADDR=localhost:6379 \
