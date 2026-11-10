@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 5
 
-identity-postgres:
+  identity-postgres:
     image: postgres:16-alpine
     container_name: devboard_identity_postgres
     environment:
