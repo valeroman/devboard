@@ -2,10 +2,12 @@
 APP_NAME=devboard
 MAIN_PATH=./cmd/api
 MIGRATE_PATH=./migrations
-DB_URL=postgresql://postgres:password@localhost:5433/devboard?sslmode=disable
+DB_URL=postgresql://postgres:password@localhost:5434/devboard?sslmode=disable
 JWT=dev-secret-key-change-in-production-min-32-chars$$
+IDENTITY_PATH=./services/identity
+IDENTITY_MAIN_PATH=$(IDENTITY_PATH)/cmd/api
 
-.PHONY: run build test lint migrate-up migrate-down generate tidy help docs
+.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate
 
 ## run: correr la aplicación
 run:
@@ -64,3 +66,15 @@ docker-logs:
 ## docs: generar documentación OpenAPI con swaggo
 docs:
 	swag init -g cmd/api/main.go -o docs
+
+## run-identity: Inicia el servidor de identity service
+run-identity:
+	IDENTITY_HTTP_ADDR=8091 \
+	IDENTITY_DATABASE_URL=${DB_URL} \
+	JWT_SECRET=$(JWT) \
+	REDIS_ADDR=localhost:6379 \
+	go run $(IDENTITY_MAIN_PATH)
+
+## identity-generate: Genera codigo Go con sqlc
+identity-generate:
+	cd $(IDENTITY_PATH) && sqlc generate
