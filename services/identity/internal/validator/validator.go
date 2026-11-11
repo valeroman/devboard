@@ -60,6 +60,8 @@ func translateTag(e validator.FieldError) string {
 		return fmt.Sprintf("debe tener mínimo %s caracteres", e.Param())
 	case "max":
 		return fmt.Sprintf("debe tener máximo %s caracteres", e.Param())
+	case "uuid4":
+		return "debe ser un UUID v4 valido"
 	default:
 		return "valor inválido"
 	}
