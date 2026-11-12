@@ -12,8 +12,13 @@ WORKSPACE_PATH=./services/workspace
 WORKSPACE_MAIN_PATH=$(WORKSPACE_PATH)/cmd/api
 WORKSPACE_MIGRATE_PATH=$(WORKSPACE_PATH)/migrations
 WORKSPACE_DB_URL=postgresql://workspace:workspace@localhost:5436/workspace?sslmode=disable
+TASK_PATH=./services/task
+TASK_MAIN_PATH=$(TASK_PATH)/cmd/api
+TASK_MIGRATE_PATH=$(TASK_PATH)/migrations
+TASK_DB_URL=postgresql://postgres:password@localhost:5434/devboard?sslmode=disable
 
-.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down
+
+.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down run-task task-generate
 
 ## run: correr la aplicación
 run:
@@ -120,3 +125,14 @@ workspace-migrate-up:
 ## workspace-migrate-down: revertir la última migración de workspace
 workspace-migrate-down:
 	migrate -path $(WORKSPACE_MIGRATE_PATH) -database "$(WORKSPACE_DB_URL)" down 1
+
+## run-task: Inicia el servidor de task service
+run-task:
+	TASK_HTTP_ADDR=:8093 \
+	TASK_DATABASE_URL=${TASK_DB_URL} \
+	JWT_SECRET=$(JWT) \
+	go run $(TASK_MAIN_PATH)
+
+## task-generate: Genera codigo Go con sqlc
+task-generate:
+	cd $(TASK_PATH) && sqlc generate

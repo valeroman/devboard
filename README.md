@@ -298,4 +298,39 @@ Y eso me genera la carpeta **generated** dentro de repository/postgres con los s
 
 24 - Copiamos el archivo **main.go** dentro de **cmd/api** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **cmd/api** y verificamos las dependencias. Tambien realizamos los respectivos cambios en Repositorios, Use Cases y Handler
 
-25 - Realizamos 
+25 - Realizamos cambios en el archivo **Makefile**
+
+```makefile
+TASK_PATH=./services/task
+TASK_MAIN_PATH=$(TASK_PATH)/cmd/api
+TASK_MIGRATE_PATH=$(TASK_PATH)/migrations
+TASK_DB_URL=
+
+## run-task: Inicia el servidor de task service
+run-task:
+	TASK_HTTP_ADDR=:8093 \
+	TASK_DATABASE_URL=${TASK_DB_URL} \
+	JWT_SECRET=$(JWT) \
+	go run $(TASK_MAIN_PATH)
+
+## task-generate: Genera codigo Go con sqlc
+task-generate:
+	cd $(TASK_PATH) && sqlc generate
+```
+
+26 - Instalamos dependencias si es que falta, ejecutando el siguiente comando **(services/task)**:
+crea los archivos:
+
+- go.mod
+- go.sum
+
+```go
+go mod tidy
+```
+
+27 - Regresamos a la ruta **devboard** y ejecutamos el comando de:
+pero no genera nada
+
+```makefile
+make task-generate
+```
