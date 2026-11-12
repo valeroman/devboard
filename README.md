@@ -290,6 +290,8 @@ Y eso me genera la carpeta **generated** dentro de repository/postgres con los s
 
 20 - Copiamos el archivo de **validator.go** de la carpeta **validator** dentro de **internal** del servicio workspace, a nuestra carpeta **validator**
 
-21 - Copiamos toda la carpeta de **middleware** dentro de **internal** del servicio de workspace, a nuestro servicio de task y verificamos las dependencias.
+21 - Copiamos toda la carpeta de **middleware** dentro de **internal** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **middleware** y verificamos las dependencias.
 
-22 - Copiamos toda la carpeta de **auth** dentro de **internal** del servicio de workspace, a nuestro servicio de task y verificamos las dependencias.
+22 - Copiamos toda la carpeta de **auth** dentro de **internal** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **auth** y verificamos las dependencias.
+
+23 - Copiamos toda la carpeta de **config** dentro de **internal** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **config** y verificamos las variables.
