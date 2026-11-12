@@ -198,9 +198,9 @@ pipe> -d identity
 
 # Pasos para crear un microservice partiendo de un monolito
 
-1 - Crear la carpeta "task" dentro de service
+1 - Crear la carpeta **task** dentro de service
 
-2 - Crear la estructura de carpetas "internal" y "cmd"/"api"
+2 - Crear la estructura de carpetas **internal** y **cmd**/**api**
 
 3 - En la terminal ir a la ruta del nuevo servicio
 
@@ -209,7 +209,7 @@ cd services/task
 ```
 
 4 - ejecutar el comando:
-Para crear el archivo go.mod del nuevo servicio
+Para crear el archivo **go.mod** del nuevo servicio
 
 ```go
 go mod init github.com/valeroman/devboard/services/task
@@ -222,6 +222,64 @@ Lo que hace es incluir task en el workspace del monolito
 go work use ./services/task
 ```
 
-6 - Crea el server de task copiando la carpeta server del servicio de workspace o identity
+6 - Crea el server de task copiando la carpeta **server** del servicio de workspace o identity
 
+7 - Creamos las carpeta **domain** dentro del servicio task
 
+8 - Copiamos los archivos del **domian** del monolito a nuestra carpeta **domain**, los siguiestes archivos:
+
+- comment.go
+- erros.go
+- task_status.go
+- task.go
+
+9 - Creamos la carpeta **usecase** y copiamos los usecases que le pertenece a task del monolito y revisamos sus dependencias actualizando la rutas del servicio
+ejemplo : "github.com/valeroman/devboard/services/task/internal/domain"
+
+10 - Crear la carpeta dentro de interna **repository** y dentro de repository **postgres** y dentro de postgres **queries**
+
+11 - Copiamos los archivos de **queries** del monolito a nuestra carpeta **quieries**
+
+- comments.sql
+- tasks.sql
+
+12 - Crear un schema para darle la estuctura base de nuestra tabla
+
+- creamos una carpeta dentro de postgres **schema** y el archivo **task.sql**, que tendra en sql la creacion de las tablas **tasks** y **comments**
+
+13 - Creamos el archivo **sqlc.yml**, en la raiz del servicio **task** y copiamos el contenido del mismo archivo pero del servicio **workspace**
+
+14 - y cambiamos
+
+```yml
+schema: "migrations/"
+```
+
+por
+
+```yml
+queries: "internal/repository/postgres/schema/"
+```
+
+15 - Ejecutamos el siguiente comando, pero en la ruta de
+
+```bash
+cd services/task
+```
+
+comando:
+
+```go
+sqlc generate
+```
+
+Y eso me genera la carpeta **generated** dentro de repository/postgres con los siguientes archivos:
+
+- comments.sql.go
+- db.go
+- models.go
+- tasks.sql.go
+
+16 - Copiar el archivo **db.go** del servicio workspace en la ruta **repository/postgres**, a nuestro servicio task en la misma ruta
+
+17 - Copiamos los archivos **comments_rapository.go** y _task_repository.go_ del monilito **repository/postgres**, a nuestro servicio task en la misma ruta **repository/postgres** y verificamos sus dependencias y las actualizamos.
