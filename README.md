@@ -295,3 +295,7 @@ Y eso me genera la carpeta **generated** dentro de repository/postgres con los s
 22 - Copiamos toda la carpeta de **auth** dentro de **internal** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **auth** y verificamos las dependencias.
 
 23 - Copiamos toda la carpeta de **config** dentro de **internal** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **config** y verificamos las variables.
+
+24 - Copiamos el archivo **main.go** dentro de **cmd/api** del servicio de workspace, a nuestro servicio de task, a nuestra carpeta **cmd/api** y verificamos las dependencias. Tambien realizamos los respectivos cambios en Repositorios, Use Cases y Handler
+
+25 - Realizamos 
