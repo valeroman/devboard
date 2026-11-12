@@ -178,6 +178,7 @@ migrate -path ./migrations -database "postgresql://postgres:password@localhost:5
 ```
 
 # Comando para migrag una tabla de una bd a otra bd
+
 ```
 docker compose exec -T postgres \
 > pg_dump \
@@ -194,3 +195,33 @@ pipe> -U identity \
 pipe> -d identity
 
 ```
+
+# Pasos para crear un microservice partiendo de un monolito
+
+1 - Crear la carpeta "task" dentro de service
+
+2 - Crear la estructura de carpetas "internal" y "cmd"/"api"
+
+3 - En la terminal ir a la ruta del nuevo servicio
+
+```bash
+cd services/task
+```
+
+4 - ejecutar el comando:
+Para crear el archivo go.mod del nuevo servicio
+
+```go
+go mod init github.com/valeroman/devboard/services/task
+```
+
+5 - Regresar a la ruta principal y ejecutamos el siguiente comando:
+Lo que hace es incluir task en el workspace del monolito
+
+```go
+go work use ./services/task
+```
+
+6 - Crea el server de task copiando la carpeta server del servicio de workspace o identity
+
+
