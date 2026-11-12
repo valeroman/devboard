@@ -131,12 +131,12 @@ func run() error {
 
 	// Project Routes
 	srv.RegisterRoutes("POST /api/v1/projects", middlewares.Chain(
-		http.HandlerFunc(workspaceHandler.Create),
+		http.HandlerFunc(projectHandler.Create),
 		authMiddleware,
 	))
 
 	srv.RegisterRoutes("GET /api/v1/projects/{id}", middlewares.Chain(
-		http.HandlerFunc(workspaceHandler.Get),
+		http.HandlerFunc(projectHandler.Get),
 		authMiddleware,
 	))
 
