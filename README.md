@@ -283,3 +283,13 @@ Y eso me genera la carpeta **generated** dentro de repository/postgres con los s
 16 - Copiar el archivo **db.go** del servicio workspace en la ruta **repository/postgres**, a nuestro servicio task en la misma ruta
 
 17 - Copiamos los archivos **comments_rapository.go** y _task_repository.go_ del monilito **repository/postgres**, a nuestro servicio task en la misma ruta **repository/postgres** y verificamos sus dependencias y las actualizamos.
+
+18 - Creamos las carpetas **handler**, **validator** y **middlewares** dentro de **internal**
+
+19 - Copiamos los archivos **comment_handler.go**, **task_handler.go**, **response.go** y **pagination.go**, a nuestro **handler** del servicio task y revisamos sus dependencias que hay que actualizar.
+
+20 - Copiamos el archivo de **validator.go** de la carpeta **validator** dentro de **internal** del servicio workspace, a nuestra carpeta **validator**
+
+21 - Copiamos toda la carpeta de **middleware** dentro de **internal** del servicio de workspace, a nuestro servicio de task y verificamos las dependencias.
+
+22 - Copiamos toda la carpeta de **auth** dentro de **internal** del servicio de workspace, a nuestro servicio de task y verificamos las dependencias.
