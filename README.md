@@ -196,7 +196,7 @@ pipe> -d identity
 
 ```
 
-# Pasos para crear un microservice partiendo de un monolito
+# - Pasos para crear un microservice partiendo de un monolito
 
 1 - Crear la carpeta **task** dentro de service
 
@@ -357,7 +357,7 @@ en el archivo **main.go** del monolito, eliminar, repositorios, casos de usos, h
 
 35 - En el monolito ir a la carpeta **handler\postgres\generated** y borrar los archivos: - comments.sql.go - tasks.sql.go
 
-# Crear la BD de task
+## Crear la BD de task
 
 36 - Ir al archivo de **docker-compose.yml** y agregamos esto:
 
@@ -387,7 +387,7 @@ volumes:
   redis_data
 ```
 
-# Crear las migraciones en Task Service
+## Crear las migraciones en Task Service
 
 37 - Creamos la carpeta **migrations** dentro de la carpeta **internal** del servicio task
 
@@ -490,7 +490,7 @@ DROP TABLE IF EXISTS comments;
 
 45 - Eliminamos nuestro schema que era provisional **repository\postgres**
 
-# Actualizamos el archivo sqlc.yml
+## Actualizamos el archivo sqlc.yml
 
 46 - En el service task actualizamos el archivo **sqlc.yml** el schema:
 
@@ -498,7 +498,7 @@ DROP TABLE IF EXISTS comments;
 schema: "migrations/"
 ```
 
-# Actualizamos el archivo Makefie
+## Actualizamos el archivo Makefie
 
 47 - modificamos la ruta de la bd de task
 
@@ -506,7 +506,7 @@ schema: "migrations/"
 TASK_DB_URL=postgresql://task-algo:task-algo@localhost:5437/task-algo?sslmode=disable
 ```
 
-# Levantamos la BD de task y aplicamos las migraciones
+## Levantamos la BD de task y aplicamos las migraciones
 
 48 - Aplicamos el siguiente comando para levantar ls bds
 
@@ -541,7 +541,7 @@ List of relations
 (3 rows)
 ```
 
-# Migrar la data que tenemos en la bd devboar a la bd de task service db
+## Migrar la data que tenemos en la bd devboar a la bd de task service db
 
 51 - Nota: Cuando migramos datos relacionados debemos respetar sus dependencias para no violar los constraints (restricciones) del destino.
 En pocas palabras tenemos que respetar el orden de migracion para que no genere problemas.
@@ -710,4 +710,62 @@ List of relations
  public | legacy_workspaces        | table | postgres
  public | schema_migrations        | table | postgres
 (7 rows)
+```
+
+# - Crear el Dockerfile para Identity, Workspace y Task
+
+1 - Creamos el archivo **Dockerfile** entro de la ruta **services/identity**, **services/workspace** y **services/task**
+
+y agregamos lo siguiente:
+
+```dockerfile
+FROM golang:1.27.3-alpine AS builder
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+
+RUN go mod download \
+    && go mod verify
+
+COPY . .
+
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /out/service \
+    ./cmd/api
+
+
+FROM alpine:3.24
+
+RUN apk add --no-cache \
+    ca-certificates \
+    curl \
+    && addgroup -S app \
+    && adduser -S app -G app
+
+WORKDIR /app
+
+COPY --from=builder \
+    /out/service \
+    /app/service
+
+USER app
+
+ENTRYPOINT ["/app/service"]
+```
+
+## Dockerignore
+
+2 - creamos los archivos **.dockerignore** en de la ruta **services/identity**, **services/workspace** y **services/task**
+
+```
+.git
+.gitignore
+coverage.out
+*.log
+tmp/
 ```
