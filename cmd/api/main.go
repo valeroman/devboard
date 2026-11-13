@@ -4,20 +4,16 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 	_ "github.com/valeroman/devboard/docs"
-	"github.com/valeroman/devboard/internal/auth"
 	"github.com/valeroman/devboard/internal/handler"
 	"github.com/valeroman/devboard/internal/logger"
 	"github.com/valeroman/devboard/internal/middlewares"
 	pgrepo "github.com/valeroman/devboard/internal/repository/postgres"
 	"github.com/valeroman/devboard/internal/server"
-	"github.com/valeroman/devboard/internal/usecase"
-	"github.com/valeroman/devboard/internal/validator"
 )
 
 // @title Devboard API
@@ -59,14 +55,14 @@ func main() {
 	log.Info("conexion a base de datos establecida")
 
 	// Auth Infrastructure
-	jwtSecret := os.Getenv("JWT_SECRET")
-	refreshTokenuration := 7 * 24 * time.Hour
+	// jwtSecret := os.Getenv("JWT_SECRET")
+	// refreshTokenuration := 7 * 24 * time.Hour
 
-	jwtManager, err := auth.NewJWTManager(auth.JWTConfig{
-		SecretKey:            []byte(jwtSecret),
-		AccessTokenDuration:  15 * time.Minute,
-		RefreshTokenDuration: refreshTokenuration,
-	})
+	// jwtManager, err := auth.NewJWTManager(auth.JWTConfig{
+	// 	SecretKey:            []byte(jwtSecret),
+	// 	AccessTokenDuration:  15 * time.Minute,
+	// 	RefreshTokenDuration: refreshTokenuration,
+	// })
 
 	if err != nil {
 		log.Error("error configurando JWT", slog.Any("error", err))
@@ -78,20 +74,9 @@ func main() {
 	// Infrastructure: adapters
 	// userRepo := memory.NewUserRepository()
 	// taskRepo := memory.NewTaskRepository()
-	taskRepo := pgrepo.NewTaskRepository(pool)
-	commentRepo := pgrepo.NewCommentRepository(pool)
-
-	// Use cases: lógica del negocio
-	taskUC := usecase.NewTaskUseCase(taskRepo, taskRepo)
-	commentUC := usecase.NewCommentUseCase(commentRepo, taskRepo)
-
-	// Validación compartida
-	validate := validator.New()
 
 	// 4. Handlers
 	healthHandler := handler.NewHealtHandler()
-	taskHandler := handler.NewTaskHandler(taskUC, validate, log)
-	commentHandler := handler.NewCommentHandler(commentUC, validate, log)
 
 	// notifier := notification.NewLogNotifier(log)
 	// _ = notifier
@@ -104,24 +89,9 @@ func main() {
 		server.WithWriteTimeout(30*time.Second),
 	)
 
-	// Middleware Auth
-	authMW := middlewares.RequireAuth(jwtManager, log)
-
 	// 6. Registro de rutas publicas
 	srv.RegisterRoutes("GET /docs/", httpSwagger.WrapHandler)
 	srv.RegisterRoutes("GET /health", healthHandler)
-
-	// 6.1 Registro de rutas protegidas - Tasks
-	srv.RegisterRoutes("POST /api/v1/tasks", middlewares.Chain(http.HandlerFunc(taskHandler.Create), authMW))
-	srv.RegisterRoutes("GET /api/v1/tasks/{id}", middlewares.Chain(http.HandlerFunc(taskHandler.Get), authMW))
-	srv.RegisterRoutes("PUT /api/v1/tasks/{id}/status", middlewares.Chain(http.HandlerFunc(taskHandler.UpdateStatus), authMW))
-	srv.RegisterRoutes("PUT /api/v1/tasks/{id}/assign", middlewares.Chain(http.HandlerFunc(taskHandler.Assign), authMW))
-	srv.RegisterRoutes("GET /api/v1/projects/{id}/tasks", middlewares.Chain(http.HandlerFunc(taskHandler.ListByProject), authMW))
-
-	// 6.4 Registro de rutas protegidas - Comments
-	srv.RegisterRoutes("POST /api/v1/tasks/{id}/comments", middlewares.Chain(http.HandlerFunc(commentHandler.Create), authMW))
-	srv.RegisterRoutes("GET /api/v1/tasks/{id}/comments", middlewares.Chain(http.HandlerFunc(commentHandler.ListByTask), authMW))
-	srv.RegisterRoutes("DELETE /api/v1/comments/{id}", middlewares.Chain(http.HandlerFunc(commentHandler.Delete), authMW))
 
 	// 7. Middleware chain
 	srv.UseChain(

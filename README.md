@@ -334,3 +334,55 @@ pero no genera nada
 ```makefile
 make task-generate
 ```
+
+28 - Hacer pruebas de los endpoints en postman:
+
+    - http://localhost:8093/api/v1/tasks    POST
+    - http://localhost:8093/api/v1/tasks/taskID    GET
+    - http://localhost:8093/api/v1/tasks/taskID/comments   POST
+    - http://localhost:8093/api/v1/tasks/taskID/comments   GET
+
+29 - Cutover en el monilito, quitar lo que ya pasamos al servicio task
+en el archivo **main.go** del monolito, eliminar, repositorios, casos de usos, hendler, rutas
+
+30 - En el monolito ir a la carpeta **domain** y borrar los archivos: - comment.go - task_status_test.go - task_status.go - task.go
+
+31 - En el monolito ir a la carpeta **usecase** y borrar los archivos: - comment_usecase.go - task_usecase.go
+
+32 - En el monolito ir a la carpeta **handler** y borrar los archivos: - comment_handler.go - task_handler.go
+
+33 - En el monolito ir a la carpeta **handler\postgres** y borrar los archivos: - comment_repository.go - task_repository.go
+
+34 - En el monolito ir a la carpeta **handler\postgres\queries** y borrar los archivos: - comments.sql - tasks.sql
+
+35 - En el monolito ir a la carpeta **handler\postgres\generated** y borrar los archivos: - comments.sql.go - tasks.sql.go
+
+# Crear la BD de task
+
+36 - Ir al archivo de **docker-compose.yml** y agregamos esto:
+
+```yml
+	task-postgres:
+		image: postgres:16-alpine
+		container_name: devboard_task_postgres
+		environment:
+		POSTGRES_USER: task-algo
+		POSTGRES_PASSWORD: task-algo
+		POSTGRES_DB: task-algo
+		ports:
+		- "5437:5432"
+		volumes:
+		- task_postgres_data:/var/lib/postgresql/data
+		healthcheck:
+		test: [ "CMD-SHELL", "pg_isready -U task-algo -d task-algo" ]
+		interval: 5s
+		timeout: 5s
+		retries: 5
+
+volumes:
+  postgres_data:
+  identity_postgres_data:
+  workspace_postgres_data:
+  task_postgres_data:
+  redis_data
+```
