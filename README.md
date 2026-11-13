@@ -769,3 +769,309 @@ coverage.out
 *.log
 tmp/
 ```
+
+## Actualizamos el archivo docker-compose
+
+```yml
+services:
+  # ====
+  # Identity
+  identity-postgres:
+    image: postgres:16-alpine
+    container_name: devboard_identity_postgres
+    environment:
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identity
+    ports:
+      - "5435:5432"
+    volumes:
+      - identity_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - identity-data
+
+  redis:
+    image: redis:7-alpine
+    container_name: devboard_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - identity-data
+
+  identity-migrate:
+    image: migrate/migrate:v4.19.1
+    container_name: devboard_identity_migrate
+    volumes:
+      - ./services/identity/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgresql://identity:identity@identity-postgres:5432/identity?sslmode=disable"
+      - "up"
+    depends_on:
+      identity-postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - identity-data
+
+  identity:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+    container_name: devboard_identity
+    environment:
+      IDENTITY_HTTP_ADDR: ":8091"
+
+      IDENTITY_DATABASE_URL: >-
+        postgresql://identity:identity@identity-postgres:5432/identity?sslmode=disable
+      REDIS_ADDR: "redis:6379"
+      JWT_SECRET: "${JWT_SECRET}"
+    ports:
+      - "8091:8091"
+    depends_on:
+      identity-postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+      identity-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8091/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - app
+      - identity-data
+
+  # ===
+  # Workspace
+  workspace-postgres:
+    image: postgres:16-alpine
+    container_name: devboard_workspace_postgres
+    environment:
+      POSTGRES_USER: workspace
+      POSTGRES_PASSWORD: workspace
+      POSTGRES_DB: workspace
+    ports:
+      - "5436:5432"
+    volumes:
+      - workspace_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workspace -d workspace"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - workspace-data
+
+  workspace-migrate:
+    image: migrate/migrate:v4.19.1
+    container_name: devboard_workspace_migrate
+    volumes:
+      - ./services/workspace/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgresql://workspace:workspace@workspace-postgres:5432/workspace?sslmode=disable"
+      - "up"
+    depends_on:
+      workspace-postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - workspace-data
+
+  workspace:
+    build:
+      context: ./services/workspace
+      dockerfile: Dockerfile
+    container_name: devboard_workspace
+    environment:
+      WORKSPACE_HTTP_ADDR: ":8092"
+
+      WORKSPACE_DATABASE_URL: >-
+        postgresql://workspace:workspace@workspace-postgres:5432/workspace?sslmode=disable
+      JWT_SECRET: "${JWT_SECRET}"
+    ports:
+      - "8092:8092"
+    depends_on:
+      workspace-postgres:
+        condition: service_healthy
+
+      workspace-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8092/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - app
+      - workspace-data
+
+  # ====
+  # Task
+  task-postgres:
+    image: postgres:16-alpine
+    container_name: devboard_task_postgres
+    environment:
+      POSTGRES_USER: task
+      POSTGRES_PASSWORD: task
+      POSTGRES_DB: task
+    ports:
+      - "5437:5432"
+    volumes:
+      - task_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U task -d task"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - task-data
+
+  task-migrate:
+    image: migrate/migrate:v4.19.1
+    container_name: devboard_task_migrate
+    volumes:
+      - ./services/task/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgresql://task:task@task-postgres:5432/task?sslmode=disable"
+      - "up"
+    depends_on:
+      task-postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - task-data
+
+  task:
+    build:
+      context: ./services/task
+      dockerfile: Dockerfile
+    container_name: devboard_task
+    environment:
+      TASK_HTTP_ADDR: ":8093"
+
+      TASK_DATABASE_URL: >-
+        postgresql://task:task@task-postgres:5432/task?sslmode=disable
+      JWT_SECRET: "${JWT_SECRET}"
+    ports:
+      - "8093:8093"
+    depends_on:
+      task-postgres:
+        condition: service_healthy
+
+      task-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8093/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - app
+      - task-data
+
+  # Legacy Database Monolito
+  postgres:
+    image: postgres:16-alpine
+    container_name: devboard_postgres
+    profiles:
+      - legacy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: devboard
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d devboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - legacy-data
+
+volumes:
+  postgres_data:
+  identity_postgres_data:
+  workspace_postgres_data:
+  task_postgres_data:
+  redis_data:
+
+networks:
+  app:
+
+  identity-data:
+    internal: true
+
+  workspace-data:
+    internal: true
+
+  task-data:
+    internal: true
+
+  legacy-data:
+    internal: true
+```
+
+## Creamos nuevos comandos en el MakeFiles
+
+```makefile
+## compose-build: Construir contenedores
+compose-build:
+	docker compose build
+
+## compose-up: Levanta nuestros contenedores
+compose-up:
+	docker compose up --build -d
+
+## compose-down: Baja nuestros contenedores
+compose-down:
+	docker compose down
+
+## compose-ps: Lista contenedores y su estado
+compose-ps:
+	docker compose ps
+
+## compose-logs: Listado de logs para servicios
+compose-logs:
+	docker compose logs -f identity workspace task
+
+## compose-config: Compose config
+compose-config:
+	docker compose config
+```

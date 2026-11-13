@@ -18,7 +18,7 @@ TASK_MIGRATE_PATH=$(TASK_PATH)/migrations
 TASK_DB_URL=postgresql://task:task@localhost:5437/task?sslmode=disable
 
 
-.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down run-task task-generate task-migrate-create task-migrate-up task-migrate-down
+.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down run-task task-generate task-migrate-create task-migrate-up task-migrate-down compose-build compose-up compose-down compose-ps compose-logs compose-config
 
 ## run: correr la aplicación
 run:
@@ -148,3 +148,27 @@ task-migrate-up:
 ## task-migrate-down: revertir la última migración de task
 task-migrate-down:
 	migrate -path $(TASK_MIGRATE_PATH) -database "$(TASK_DB_URL)" down 1
+
+## compose-build: Construir contenedores
+compose-build:
+	docker compose build
+
+## compose-up: Levanta nuestros contenedores
+compose-up:
+	docker compose up --build -d
+
+## compose-down: Baja nuestros contenedores
+compose-down:
+	docker compose down
+
+## compose-ps: Lista contenedores y su estado
+compose-ps:
+	docker compose ps
+
+## compose-logs: Listado de logs para servicios
+compose-logs:
+	docker compose logs -f identity workspace task
+
+## compose-config: Compose config
+compose-config:
+	docker compose config
