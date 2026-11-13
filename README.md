@@ -386,3 +386,123 @@ volumes:
   task_postgres_data:
   redis_data
 ```
+
+# Crear las migraciones en Task Service
+
+37 - Creamos la carpeta **migrations** dentro de la carpeta **internal** del servicio task
+
+38 - En el archivo Makefile crear los siguientes comandos:
+
+```makefile
+## task-generate: Genera codigo Go con sqlc
+task-generate:
+	cd $(TASK_PATH) && sqlc generate
+
+## task-migrate-create: crea una nueva migración de task (OJO para usarlo su uso es: make migrate-create name=create_users)
+task-migrate-create:
+	migrate create -ext sql -dir $(TASK_MIGRATE_PATH) -seq $(name)
+
+## task-migrate-up: aplicar todas las migraciones pendientes para task
+task-migrate-up:
+	migrate -path $(TASK_MIGRATE_PATH) -database "$(TASK_DB_URL)" up
+
+## task-migrate-down: revertir la última migración de task
+task-migrate-down:
+	migrate -path $(TASK_MIGRATE_PATH) -database "$(TASK_DB_URL)" down 1
+```
+
+39 - Creamos la primera migracion con el comando:
+Eso crea los archivos en la carpeta **migrations**:
+
+- 000001_create_tasks.down.sql
+- 000001_create_tasks.up.sql
+
+```go
+make task-migrate-create name=create_tasks
+```
+
+40 - Copiamos esto en el archivo de **000001_create_tasks.up.sql**
+
+```sql
+
+CREATE TABLE tasks (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id  UUID NOT NULL,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'todo',
+                CHECK (status IN ('todo', 'in_progress','done')),
+    assignee_id UUID,
+    created_by  UUID NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
+CREATE INDEX idx_tasks_created_by_id ON tasks(created_by);
+```
+
+41 - Copiamos esto en el archivo de **000001_create_tasks.down.sql**
+
+```sql
+
+DROP INDEX IF EXISTS idx_tasks_created_by;
+DROP INDEX IF EXISTS idx_tasks_assignee_id;
+DROP INDEX IF EXISTS idx_tasks_project_id;
+DROP TABLE IF EXISTS tasks;
+
+```
+
+42 - Creamos la segunda migracion con el comando:
+Eso crea los archivos en la carpeta **migrations**:
+
+- 000001_create_comments.down.sql
+- 000001_create_comments.up.sql
+
+```go
+make task-migrate-create name=create_comments
+```
+
+43 - Copiamos esto en el archivo de **000001_create_comments.up.sql**
+
+```sql
+
+CREATE TABLE comments (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id    UUID NOT NULL REFERENCES tasks(id)
+               ON DELETE CASCADE,
+    author_id  UUID NOT NULL,
+    content    TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_comments_task_id ON comments(task_id);
+CREATE INDEX idx_comments_author_id ON comments(author_id);
+```
+
+44 - Copiamos esto en el archivo de **000001_create_comments.down.sql**
+
+```sql
+DROP TABLE IF EXISTS comments;
+```
+
+45 - Eliminamos nuestro schema que era provisional **repository\postgres**
+
+# Actualizamos el archivo sqlc.yml
+
+46 - En el service task actualizamos el archivo **sqlc.yml** el schema:
+
+```yml
+schema: "migrations/"
+```
+
+# Actualizamos el archivo Makefie
+
+47 - modificamos la ruta de la bd de task
+
+````makefile
+TASK_DB_URL=postgresql://task-algo:task-algo@localhost:5437/task-algo?sslmode=disable
+```
+````

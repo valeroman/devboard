@@ -15,10 +15,10 @@ WORKSPACE_DB_URL=postgresql://workspace:workspace@localhost:5436/workspace?sslmo
 TASK_PATH=./services/task
 TASK_MAIN_PATH=$(TASK_PATH)/cmd/api
 TASK_MIGRATE_PATH=$(TASK_PATH)/migrations
-TASK_DB_URL=postgresql://postgres:password@localhost:5434/devboard?sslmode=disable
+TASK_DB_URL=postgresql://task:task@localhost:5437/task?sslmode=disable
 
 
-.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down run-task task-generate
+.PHONY: run build test lint migrate-up migrate-down generate tidy help docs run-identity identity-generate identity-migrate-create identity-migrate-up identity-migrate-down run-workspace workspace-generate workspace-migrate-create workspace-migrate-up workspace-migrate-down run-task task-generate task-migrate-create task-migrate-up task-migrate-down
 
 ## run: correr la aplicación
 run:
@@ -136,3 +136,15 @@ run-task:
 ## task-generate: Genera codigo Go con sqlc
 task-generate:
 	cd $(TASK_PATH) && sqlc generate
+
+## task-migrate-create: crea una nueva migración de task (OJO para usarlo su uso es: make migrate-create name=create_users)
+task-migrate-create:
+	migrate create -ext sql -dir $(TASK_MIGRATE_PATH) -seq $(name)
+
+## task-migrate-up: aplicar todas las migraciones pendientes para task
+task-migrate-up:
+	migrate -path $(TASK_MIGRATE_PATH) -database "$(TASK_DB_URL)" up
+
+## task-migrate-down: revertir la última migración de task
+task-migrate-down:
+	migrate -path $(TASK_MIGRATE_PATH) -database "$(TASK_DB_URL)" down 1
