@@ -502,7 +502,212 @@ schema: "migrations/"
 
 47 - modificamos la ruta de la bd de task
 
-````makefile
+```makefile
 TASK_DB_URL=postgresql://task-algo:task-algo@localhost:5437/task-algo?sslmode=disable
 ```
-````
+
+# Levantamos la BD de task y aplicamos las migraciones
+
+48 - Aplicamos el siguiente comando para levantar ls bds
+
+```bash
+docker compose up -d
+```
+
+49 - Aplicamos las migraciones, que crea las tablas en task-postgres con el siguiente comando:
+
+```bash
+make task-migrate-up
+```
+
+50 - Para comprbar que se crearon esas tablas en el contenedor de la bd de task
+
+```bash
+$ docker compose exec \
+> task-postgres \
+> psql \
+> -U task \
+> -d task \
+> -c "\dt"
+```
+
+```sql
+List of relations
+ Schema |       Name        | Type  | Owner
+--------+-------------------+-------+-------
+ public | comments          | table | task
+ public | schema_migrations | table | task
+ public | tasks             | table | task
+(3 rows)
+```
+
+# Migrar la data que tenemos en la bd devboar a la bd de task service db
+
+51 - Nota: Cuando migramos datos relacionados debemos respetar sus dependencias para no violar los constraints (restricciones) del destino.
+En pocas palabras tenemos que respetar el orden de migracion para que no genere problemas.
+
+1. tasks
+2. comments
+
+## Copiar Task
+
+```
+docker compose exec -T postgres \
+pg_dump \
+-U postgres \
+-d devboard \
+--data-only \
+--table=public.tasks \
+--column-inserts \
+--no-owner \
+--no-privileges \
+| docker compose exec -T task-postgres \
+psql \
+-U task \
+-d task
+```
+
+## Copiar Comments
+
+```
+docker compose exec -T postgres \
+pg_dump \
+-U postgres \
+-d devboard \
+--data-only \
+--table=public.comments \
+--column-inserts \
+--no-owner \
+--no-privileges \
+| docker compose exec -T task-postgres \
+psql \
+-U task \
+-d task
+```
+
+## Verificar integridad
+
+Origen:
+
+```
+docker compose exec postgres \
+psql \
+-U postgres \
+-d devboard \
+-c "
+SELECT
+    (SELECT COUNT(*) FROM tasks)
+        AS tasks,
+    (SELECT COUNT(*) FROM comments)
+        AS comments;
+"
+```
+
+Destino:
+
+```
+docker compose exec task-postgres \
+psql \
+-U task \
+-d task \
+-c "
+SELECT
+    (SELECT COUNT(*) FROM tasks)
+        AS tasks,
+    (SELECT COUNT(*) FROM comments)
+        AS comments;
+"
+```
+
+## Comprobar relaciones
+
+Dentro de Task DB
+
+```
+docker compose exec task-postgres \
+psql \
+-U task \
+-d task \
+-c "
+SELECT c.id
+FROM comments c
+LEFT JOIN tasks t
+    ON t.id = c.task_id
+WHERE t.id IS NULL;
+"
+```
+
+## Crear migracion en monolito para detach
+
+52 - Ejecutar el siguiente comando:
+
+ese comando crea los siguientes archivos en la carpta **migrations** en el monolito:
+
+- 000009_detach_task_data.down.sql
+- 000009_detach_task_data.up.sql
+
+```
+make migrate-create name=detach_task_data
+```
+
+## Agregar query de detach up al archivo 000009_detach_task_data.up.sql
+
+```
+ALTER TABLE comments
+    RENAME TO legacy_comments;
+
+ALTER TABLE tasks
+    RENAME TO legacy_tasks;
+```
+
+## Agregar query de detach down al archivo 000009_detach_task_data.down.sql
+
+```
+ALTER TABLE legacy_tasks
+    RENAME TO tasks;
+
+ALTER TABLE legacy_comments
+    RENAME TO comments;
+```
+
+## Comprobamos tablas
+
+```
+docker compose exec postgres \
+psql -U postgres -d devboard \
+-c "\dt"
+```
+
+```sql
+List of relations
+ Schema |           Name           | Type  |  Owner
+--------+--------------------------+-------+----------
+ public | comments                 | table | postgres
+ public | legacy_projects          | table | postgres
+ public | legacy_users             | table | postgres
+ public | legacy_workspace_members | table | postgres
+ public | legacy_workspaces        | table | postgres
+ public | schema_migrations        | table | postgres
+ public | tasks                    | table | postgres
+(7 rows)
+```
+
+53 - Ejecutamos el comando para que se corra las migraciones que modificamos (monolito):
+
+```bash
+make migrate-up
+```
+
+```sql
+List of relations
+ Schema |           Name           | Type  |  Owner
+--------+--------------------------+-------+----------
+ public | legacy_comments          | table | postgres
+ public | legacy_projects          | table | postgres
+ public | legacy_tasks             | table | postgres
+ public | legacy_users             | table | postgres
+ public | legacy_workspace_members | table | postgres
+ public | legacy_workspaces        | table | postgres
+ public | schema_migrations        | table | postgres
+(7 rows)
+```

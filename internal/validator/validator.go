@@ -1,4 +1,4 @@
-// Package validator provides validation helpers for the application.
+// Package validator wraps go-playground/validator and returns field-level validation errors.
 package validator
 
 import (

@@ -1,4 +1,4 @@
-// Package logger provides structured logging helpers for the application.
+// Package logger provides structured logging configuration based on slog.
 package logger
 
 import (
