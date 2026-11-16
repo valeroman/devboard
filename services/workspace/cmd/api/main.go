@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/valeroman/devboard/services/workspace/internal/auth"
@@ -15,6 +17,8 @@ import (
 	"github.com/valeroman/devboard/services/workspace/internal/server"
 	"github.com/valeroman/devboard/services/workspace/internal/usecase"
 	"github.com/valeroman/devboard/services/workspace/internal/validator"
+
+	grpcTransport "github.com/valeroman/devboard/services/workspace/internal/transport/grpc"
 )
 
 func main() {
@@ -66,18 +70,26 @@ func run() error {
 	// Use cases
 	workspaceUseCase := usecase.NewWorkspaceUseCase(workspaceRepository)
 	projectUseCase := usecase.NewProjectUseCase(projectRepository, workspaceRepository)
+	projectAccessUseCase := usecase.NewProjectAccessUseCase(projectRepository, workspaceRepository)
 
 	validate := validator.New()
 
 	// Handlers
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceUseCase, validate, logger)
 	projectHandler := handler.NewProjectHandler(projectUseCase, validate, logger)
+	grpcHandler := grpcTransport.NewHandler(projectAccessUseCase, logger)
 
 	// Server
 	srv := server.New(cfg.HTTPAddr,
 		server.Withlogger(logger),
 		server.WithReadHeaderTimeout(15*time.Second),
 		server.WithWriteTimeout(30*time.Second))
+
+	grpcServer, err := grpcTransport.NewServer(cfg.GRPCAddr, grpcHandler, logger)
+
+	if err != nil {
+		return err
+	}
 
 	authMiddleware := middlewares.RequireAuth(tokenVerifier, logger)
 
@@ -165,6 +177,49 @@ func run() error {
 
 	logger.Info("Se inicio WORKSPACE SERVICE", slog.String("addr", cfg.HTTPAddr))
 
-	return srv.Start()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	defer stop()
+
+	errCh := make(chan error, 2)
+
+	// Inicializando el servidor http
+	go func() {
+		errCh <- srv.Start()
+	}()
+
+	// Inicializando el servidor grpc
+	go func() {
+		errCh <- grpcServer.Serve()
+	}()
+
+	var runErr error
+
+	select {
+	case <-ctx.Done():
+		logger.Info("Señal de apagado workspace recibida")
+
+	case err := <-errCh:
+		if err != nil {
+			runErr = err
+			logger.Error("El servidor workspace falló", slog.Any("error", err))
+		}
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	defer cancel()
+
+	grpcServer.Shutdown(5 * time.Second)
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("http shutdown falló", slog.Any("error", err))
+
+		if runErr == nil {
+			runErr = err
+		}
+	}
+
+	return runErr
 
 }
