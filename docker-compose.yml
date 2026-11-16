@@ -138,17 +138,19 @@ services:
   
   workspace:
     build:
-      context: ./services/workspace
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/workspace/Dockerfile
     container_name: devboard_workspace
     environment:
       WORKSPACE_HTTP_ADDR: ":8092"
+      WORKSPACE_GRPC_ADDR: ":9072"
 
       WORKSPACE_DATABASE_URL: >-
         postgresql://workspace:workspace@workspace-postgres:5432/workspace?sslmode=disable
       JWT_SECRET: "${JWT_SECRET}"
     ports:
       - "8092:8092"
+      - "9072:9072"
     depends_on:
       workspace-postgres:
         condition: service_healthy

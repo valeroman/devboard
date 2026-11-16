@@ -1838,3 +1838,126 @@ func run() error {
 }
 
 ```
+
+5 - En la ruta de **services/worspace**, ejecutar el comando
+
+```go
+  go mod tidy
+```
+
+si da error como estos
+
+```go
+go mod tidy
+go: finding module for package google.golang.org/grpc/status
+go: finding module for package google.golang.org/grpc
+go: finding module for package github.com/valeroman/devboard/contracts/gen/go/devboard/workspace/v1
+go: finding module for package google.golang.org/grpc/codes
+go: downloading github.com/valeroman/devboard v1.3.0
+go: found google.golang.org/grpc in google.golang.org/grpc v1.85.0
+go: found google.golang.org/grpc/codes in google.golang.org/grpc v1.85.0
+go: found google.golang.org/grpc/status in google.golang.org/grpc v1.85.0
+go: finding module for package github.com/valeroman/devboard/contracts/gen/go/devboard/workspace/v1
+go: github.com/valeroman/devboard/services/workspace/internal/transport/grpc imports
+        github.com/valeroman/devboard/contracts/gen/go/devboard/workspace/v1: github.com/valeroman/devboard@v1.3.0: verifying module: github.com/valeroman/devboard@v1.3.0: reading https://sum.golang.org/lookup/github.com/valeroman/devboard@v1.3.0: 404 Not Found
+        server response:
+        not found: github.com/valeroman/devboard@v1.3.0: invalid version: git ls-remote -q --end-of-options https://github.com/valeroman/devboard in /tmp/gopath/pkg/mod/cache/vcs/b0a7c1919f3f3cdd71dd557853fdc052548e3b1485fed4377159da6dfdb7c054: exit status 128:
+                fatal: unable to access 'https://github.com/valeroman/devboard/': Could not resolve host: github.com
+```
+
+ejecutar lo siguiente:
+
+```go
+go mod edit -require=github.com/valeroman/devboard/contracts@v0.0.0
+go mod edit -replace=github.com/valeroman/devboard/contracts=../../contracts
+```
+
+y despues un **go mod tidy**
+
+6 - modificamos el archivo **docker-compose** agregando estos en workspace:
+
+```yaml
+workspace:
+  build:
+    context: .
+    dockerfile: services/workspace/Dockerfile
+  container_name: devboard_workspace
+  environment:
+    WORKSPACE_HTTP_ADDR: ":8092"
+    WORKSPACE_GRPC_ADDR: ":9072"
+
+    WORKSPACE_DATABASE_URL: >-
+      postgresql://workspace:workspace@workspace-postgres:5432/workspace?sslmode=disable
+    JWT_SECRET: "${JWT_SECRET}"
+  ports:
+    - "8092:8092"
+    - "9072:9072"
+  depends_on:
+    workspace-postgres:
+      condition: service_healthy
+
+    workspace-migrate:
+      condition: service_completed_successfully
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://localhost:8092/health"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+    start_period: 5s
+  restart: unless-stopped
+  networks:
+    - app
+    - workspace-data
+```
+
+Y tambien modificamos el archivo **Dockerfile** del **services/workspace**
+
+```yaml
+FROM golang:1.27.3-alpine AS builder
+
+WORKDIR /src
+
+COPY contracts/go.mod contracts/go.sum ./contracts/
+COPY services/workspace/go.mod services/workspace/go.sum ./services/workspace/
+
+WORKDIR /src/services/workspace
+
+RUN go mod download \
+&& go mod verify
+
+WORKDIR /src
+
+COPY contracts ./contracts
+COPY services/workspace ./services/workspace
+
+WORKDIR /src/services/workspace
+
+RUN CGO_ENABLED=0 \
+GOOS=linux \
+go build \
+-trimpath \
+-ldflags="-s -w" \
+-o /out/service \
+./cmd/api
+
+
+FROM alpine:3.24
+
+RUN apk add --no-cache \
+ca-certificates \
+curl \
+&& addgroup -S app \
+&& adduser -S app -G app
+
+WORKDIR /app
+
+COPY --from=builder \
+/out/service \
+/app/service
+
+USER app
+
+ENTRYPOINT ["/app/service"]
+```
+
+Y ahora ejecutamos el comando \*\*make docker

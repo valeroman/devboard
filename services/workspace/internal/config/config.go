@@ -16,7 +16,7 @@ func Load() (Config, error) {
 
 	cfg := Config{
 		HTTPAddr:    envOrDeffault("WORKSPACE_HTTP_ADDR", ":8092"),
-		GRPCAddr:    envOrDeffault("WORKSPACE_GRPC_ADDR", ":9092"),
+		GRPCAddr:    envOrDeffault("WORKSPACE_GRPC_ADDR", ":9072"),
 		DatabaseURL: envOrDeffault("WORKSPACE_DATABASE_URL", ""),
 		JWTSecret:   envOrDeffault("JWT_SECRET", "dev-secret-key-change-in-production-min-32-chars$$"),
 	}
