@@ -31,7 +31,7 @@ func NewHandler(
 	}
 }
 
-func (handler *Handler,) ValidateProjectAccess(
+func (handler *Handler) ValidateProjectAccess(
 	ctx context.Context,
 	request *workspacev1.ValidateProjectAccessRequest,
 ) (
@@ -66,7 +66,7 @@ func (handler *Handler,) ValidateProjectAccess(
 	}, nil
 }
 
-func (handler *Handler,) mapError(
+func (handler *Handler) mapError(
 	ctx context.Context,
 	err error,
 ) error {
