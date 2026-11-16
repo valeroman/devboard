@@ -1075,3 +1075,133 @@ compose-logs:
 compose-config:
 	docker compose config
 ```
+
+# - Comunicación Sincrona gRPC
+
+## crear estructura de carpetas para la creación de contratos del protocol buffers
+
+1 - Creamos las siguientes carpetas:
+
+**contracts -> proto -> devboard -> workspace -> v1**
+
+2 - Dentro de la carpeta **v1**, creamos el archivo **workspace.proto**, donde vamos a definir el contrato.
+
+3 - Agregamos esto al archivo **workspace.proto**, para definir el **contrato**
+
+```proto
+syntax = "proto3";
+package devboard.workspace.v1;
+option go_package = "github.com/valeroman/contracts/gen/go/devboard/workspace/v1;workspacev1";
+```
+
+4 - Ahora en el archivo **workspace.proto**, vamos a definir el **request**
+
+- Primero vamos a solicitar la validación
+
+```proto
+  message ValidateProjectAccessRequest {
+    string project_id = 1;
+    string user_id = 2;
+}
+```
+
+- Respondemos con esto
+
+```proto
+  message ValidateProjectAccessResponse {
+    string workspace_id = 1;
+}
+```
+
+5 - Definir el servicio
+
+```proto
+service WorkspaceService {
+    rpc ValidateProjectAccess(ValidateProjectAccessRequest)
+    returns (ValidateProjectAccessResponse);
+}
+```
+
+## Instalamos Buf CLI
+
+1 - Revisar la documentacion https://buf.build/docs/cli/installation/, para realizar la instalación
+
+2 - Generamos el archivo **go.mod** en la ruta de **devboard/contracts/**, usando el siguiente comando:
+
+**nota**: verificar que todos los go.mod tengan la misma version en todos los servicios y el de contracts.
+
+```go
+  go mod init github.com/valeroman/devboard/contracts
+```
+
+3 - Agregar al archivo **go.work**, los contratos de **protocol buffers**, ir a la ruta de **devboard** y ejecutar el siguiente comando:
+
+```go
+  go work use ./contracts
+```
+
+## Configuración Buf
+
+1 - Creamos el archivo **buf.yaml**, en la ruta de **contracts** y agregamos esto:
+
+```yaml
+version: v2
+
+modules:
+  - path: proto
+
+lint:
+  use:
+    - STANDARD
+
+breaking:
+  use:
+    - FILE
+```
+
+2 - Ejecutamos estos comandos:
+
+```bash
+buf lint
+buf build
+```
+
+3 - Creamos el archivo **buf.gen.yaml** para la configuración del archivo de generación de codigo y copiamos esto:
+
+```yaml
+version: v2
+
+clean: true
+
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: gen/go
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen/go
+    opt: paths=source_relative
+```
+
+4 - Ejecutamos el siguiente comando para generar el codigo generado or Buf
+
+estando en la ruta de **constracts**
+
+```bash
+buf generate
+```
+
+me genera los siguientes archivos:
+
+- workspace_grpc.pb.go
+- workspace.pb.go
+
+5 - Ahora ejecutamos el siguiente comando para instalar o actualizar paquetes:
+
+```go
+go mod tidy
+go mod verify
+```
+
+## Modificar el archivo Makefile
+
+
