@@ -1204,4 +1204,33 @@ go mod verify
 
 ## Modificar el archivo Makefile
 
+1 - Agregamos la ruta de la carpeta contracts:
 
+```makefile
+CONTRACTS_PATH=./contracts
+
+...
+## proto-format: Formatear proto
+proto-format:
+	cd $(CONTRACTS_PATH) && buf format -w
+
+## proto-lint: APlicar linter al proto
+proto-lint:
+	cd $(CONTRACTS_PATH) && buf lint
+
+## proto-build: Construir contractos
+proto-build:
+	cd $(CONTRACTS_PATH) && buf build
+
+## proto-generate: Genera codigo con Buf e instala dependencias
+proto-generate:
+	cd  $(CONTRACTS_PATH) && buf generate
+	cd  $(CONTRACTS_PATH) && go mod tidy
+
+## proto-check: Revisa linter, construir buf y probar generación con test
+proto-check:
+	cd  $(CONTRACTS_PATH) && buf lint
+	cd  $(CONTRACTS_PATH) && buf build
+	cd  $(CONTRACTS_PATH) && go test ./...
+
+```
