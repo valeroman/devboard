@@ -1235,7 +1235,7 @@ proto-check:
 
 ```
 
-## Crear 2 Server (HTTP, gRPC)
+## Crear Server (gRPC)
 
 1 - Creamos el archivo **project_access_usecose.go** en la siguiente ruta **services/workspace/internal/usecase** y colocamos el siguuiente codigo
 
@@ -1476,3 +1476,9 @@ func (
 	}
 }
 ```
+
+## Configuración del gRPC de workspace
+
+1 - Ir al archivo **config.go**, en la ruta **services/workspace/internal/config** y agregar el **GRPCAddr**
+
+
