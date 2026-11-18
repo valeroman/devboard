@@ -1960,4 +1960,214 @@ USER app
 ENTRYPOINT ["/app/service"]
 ```
 
-Y ahora ejecutamos el comando \*\*make docker
+Y ahora ejecutamos el comando **make dockercompose-up**
+
+## Instalar gRPCurl para pruebas
+
+1 - Instalar el siguiente paquete con este comando:
+
+```bash
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+```
+
+## Registrar Reflection
+
+1 - Ir a la ruta de **services/workspace/transport/grpc** y en el archivo **server.go**, agregamos esto
+
+```go
+reflection.Register(
+	grpcServer,
+)
+```
+
+Y ahora ejecutamos el comando **make dockercompose-up**
+
+## Probando que el servicio este registrado
+
+```
+grpcurl \
+-plaintext \
+localhost:9072 \
+list
+
+
+grpcurl \
+-plaintext \
+localhost:9072 \
+list \
+devboard.workspace.v1.WorkspaceService
+```
+
+## IDs existentes
+
+```
+docker compose exec workspace-postgres \
+psql \
+-U workspace \
+-d workspace \
+-c "
+SELECT
+    p.id AS project_id,
+    wm.user_id,
+    p.workspace_id
+FROM projects p
+JOIN workspace_members wm
+    ON wm.workspace_id = p.workspace_id
+LIMIT 1;
+"
+```
+
+## Probando ValidateProjectAccess
+
+```
+grpcurl \
+-plaintext \
+-d '{
+  "project_id": "$PROJECT_ID",
+  "user_id": "$USER_ID"
+}' \
+localhost:9092 \
+devboard.workspace.v1.WorkspaceService/ValidateProjectAccess
+```
+
+## Probando un Project inexistente
+
+```
+grpcurl \
+-plaintext \
+-d '{
+  "project_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "user_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+}' \
+localhost:9092 \
+devboard.workspace.v1.WorkspaceService/ValidateProjectAccess
+```
+
+## Probando usuario sin acceso
+
+```
+grpcurl \
+-plaintext \
+-d "{
+  "project_id": "$PROJECT_ID",
+  "user_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+}" \
+localhost:9092 \
+devboard.workspace.v1.WorkspaceService/ValidateProjectAccess
+```
+
+## Probando input vacio
+
+```
+grpcurl \
+-plaintext \
+-d '{}' \
+localhost:9092 \
+devboard.workspace.v1.WorkspaceService/ValidateProjectAccess
+```
+
+# - Implementando Task y Workspace (Services) gRPC Client, para que se comuniquen entre si.
+
+## Creando port en Task service
+
+1 - En la ruta de **services/task/internal/usecase/**, creamos el archivo **project_access.go**
+
+```go
+package usecase
+
+import "context"
+
+type ProjectAccess struct {
+	WorkspaceID string
+}
+
+type ProjectAccessChecker interface {
+	ValidateProjectAccess(ctx context.Context, projectID string, userID string) (ProjectAccess, error)
+}
+```
+
+2 - Ahora modificamos el archivo **task_usecase.go**, agregando lo siguiente:
+
+```go
+type TaskUseCase struct {
+	commands      TaskCommandRepository
+	queries       TaskQueryRepository
+	projectAccess ProjectAccessChecker  // nuevo
+}
+
+// NewTaskUseCase (constructor)
+func NewTaskUseCase(commands TaskCommandRepository, queries TaskQueryRepository, projectAccess ProjectAccessChecker) *TaskUseCase {
+	return &TaskUseCase{
+		commands:      commands,
+		queries:       queries,
+		projectAccess: projectAccess, // nuevo
+	}
+}
+
+// CreateTask método para crear tarea
+func (uc *TaskUseCase) CreateTask(ctx context.Context, projectID, title, description, createdBy string) (*domain.Task, error) {
+
+	_, err := uc.projectAccess.ValidateProjectAccess(ctx, projectID, createdBy) // nuevo
+
+	if err != nil {                     // nuevo
+		return nil, err
+	}
+
+	task := domain.NewTask(projectID, title, description, createdBy)
+
+	if err := uc.commands.Create(ctx, task); err != nil {
+		return nil, fmt.Errorf("creando tarea: %w", err)
+	}
+
+	return task, nil
+}
+
+```
+
+## Creando el adapter de gRPC en Task service
+
+1 - Creamos las carpetas **client/workspace**, dentro de la ruta **services/task/internal**
+
+2 - Creamos el archivo **client.go**
+
+```go
+package workspace
+
+import (
+	"fmt"
+
+	workspacev1 "github.com/valeroman/devboard/contracts/gen/go/devboard/workspace/v1"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+type Client struct {
+	connection *grpc.ClientConn
+	client     workspacev1.WorkspaceServiceClient
+}
+
+func NewClient(target string) (*Client, error) {
+	connection, err :=
+		grpc.NewClient(
+			target,
+			grpc.WithTransportCredentials(
+				insecure.NewCredentials(),
+			),
+		)
+
+	if err != nil {
+		return nil,
+			fmt.Errorf(
+				"create workspace grpc client: %w",
+				err,
+			)
+	}
+
+	return &Client{
+		connection: connection,
+		client:     workspacev1.NewWorkspaceServiceClient(connection),
+	}, nil
+}
+
+```
