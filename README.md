@@ -2222,3 +2222,46 @@ func mapError(err error) error {
 
 ## Configurando Task y composition root
 
+1 - Agregamos en el archivo **config.go** lo necesario para comunicarme al workspace vía grpc
+
+```go
+type Config struct {
+	HTTPAddr            string
+	DatabaseURL         string
+	JWTSecret           string
+	WorkspaceGRPCTarget string  // -> nuevo
+}
+
+func Load() (Config, error) {
+
+	cfg := Config{
+		HTTPAddr:    envOrDeffault("TASK_HTTP_ADDR", ":8093"),
+		DatabaseURL: envOrDeffault("TASK_DATABASE_URL", ""),
+		JWTSecret:   envOrDeffault("JWT_SECRET", "dev-secret-key-change-in-production-min-32-chars$$"),
+		WorkspaceGRPCTarget: envOrDeffault("WORKSPACE_GRPC_TARGET", "localhost:9072"),  // -> nuevo
+	}
+
+```
+
+2 - Agregar el cliente al composition root, en el archivo **main.go**, de la ruta **services/task/cmd/api**
+
+```go
+// Repositories
+	taskRepository := postgres.NewTaskRepository(pool)
+	commentRepository := postgres.NewCommentRepository(pool)
+
+	workspaceGRPCClient, err := workspace.NewClient(cfg.WorkspaceGRPCTarget)    -> Nuevo
+
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := workspaceGRPCClient.Close(); err != nil {
+			logger.Error("Fallo al cerrar workspace client", slog.Any("error", err))
+		}
+	}()
+
+	// Use cases
+	taskUseCase := usecase.NewTaskUseCase(taskRepository, taskRepository, workspaceGRPCClient) -> agregar workspaceGRPCClient
+```

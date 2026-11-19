@@ -6,9 +6,10 @@ import (
 )
 
 type Config struct {
-	HTTPAddr    string
-	DatabaseURL string
-	JWTSecret   string
+	HTTPAddr            string
+	DatabaseURL         string
+	JWTSecret           string
+	WorkspaceGRPCTarget string
 }
 
 func Load() (Config, error) {
@@ -17,6 +18,7 @@ func Load() (Config, error) {
 		HTTPAddr:    envOrDeffault("TASK_HTTP_ADDR", ":8093"),
 		DatabaseURL: envOrDeffault("TASK_DATABASE_URL", ""),
 		JWTSecret:   envOrDeffault("JWT_SECRET", "dev-secret-key-change-in-production-min-32-chars$$"),
+		WorkspaceGRPCTarget: envOrDeffault("WORKSPACE_GRPC_TARGET", "localhost:9072"),
 	}
 
 	// httpAddr := os.Getenv("IDENTITY_HTTP_ADDR")
