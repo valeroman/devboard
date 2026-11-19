@@ -2171,3 +2171,54 @@ func NewClient(target string) (*Client, error) {
 }
 
 ```
+
+## Implementado port en Task service
+
+1 - Agregamos las siguientes funciones al archivo **client.go**
+
+```go
+func (client *Client) ValidateProjectAccess(ctx context.Context, projectID string, userID string) (usecase.ProjectAccess, error) {
+	response, err := client.client.ValidateProjectAccess(ctx, &workspacev1.ValidateProjectAccessRequest{
+		ProjectId: projectID,
+		UserId:    userID,
+	})
+
+	if err != nil {
+		return usecase.ProjectAccess{}, mapError(err)
+	}
+
+	return usecase.ProjectAccess{
+		WorkspaceID: response.GetWorkspaceId(),
+	}, nil
+}
+
+func (client *Client) Close() error {
+	if err := client.connection.Close(); err != nil {
+		return fmt.Errorf("Error al cerrar conexión grpc: %w", err)
+	}
+	return nil
+}
+
+func mapError(err error) error {
+	code := status.Code(err)
+	switch code {
+	case codes.InvalidArgument:
+		return domain.ErrInvalidInput
+
+	case codes.NotFound:
+		return domain.ErrNotFound
+
+	case codes.PermissionDenied:
+		return domain.ErrForbidden
+
+	case codes.Unavailable:
+		return fmt.Errorf("Servicio de workspace no disponible: %w", err)
+
+	default:
+		return fmt.Errorf("Servicio de workspace gRPC falló: %w", err)
+	}
+}
+```
+
+## Configurando Task y composition root
+
