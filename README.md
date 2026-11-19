@@ -2584,3 +2584,58 @@ callerService := "unknown"
 
 	handler.logger.DebugContext(ctx, "grpc request recibido", slog.String("caller_service", callerService), slog.String("method", "ValidateProjectAccess"))
 ```
+
+## gRPC Health Checking
+
+1 - Modificamos el archivo **server.go**, en la ruta **services/workspace/internal/transport/grpc** y agregamos esto:
+
+```go
+type Server struct {
+	server       *googlegrpc.Server
+	healthServer *health.Server				// -> nuevo
+	listener     net.Listener
+	logger       *slog.Logger
+}
+
+func NewServer(
+	addr string,
+	handler *Handler,
+	logger *slog.Logger,
+) (*Server, error) {
+	listener, err := net.Listen("tcp", addr)
+
+	if err != nil {
+		return nil,
+			fmt.Errorf(
+				"listen grpc %s: %w",
+				addr,
+				err,
+			)
+	}
+
+	grpcServer := googlegrpc.NewServer()
+
+	workspacev1.RegisterWorkspaceServiceServer(
+		grpcServer,
+		handler,
+	)
+
+	healthServer := health.NewServer()							// -> nuevo
+
+	healthgrpc.RegisterHealthServer(grpcServer, healthServer)	// -> nuevo
+
+	healthServer.SetServingStatus("", healthgrpc.HealthCheckResponse_SERVING)				// -> nuevo
+	healthServer.SetServingStatus(workspacev1.WorkspaceService_ServiceDesc.ServiceName, healthgrpc.HealthCheckResponse_SERVING)				// -> nuevo
+
+	reflection.Register(
+		grpcServer,
+	)
+
+	return &Server{
+		server:       grpcServer,
+		healthServer: healthServer,
+		listener:     listener,
+		logger:       logger,
+	}, nil
+}
+```
