@@ -2639,3 +2639,104 @@ func NewServer(
 	}, nil
 }
 ```
+
+## Interceptors - Caller metadata y Loging
+
+1 - Creamos el archivo **interceptor.go**, el la ruta **services/task/internal/client/workspace**
+
+```go
+package workspace
+
+import (
+	"context"
+	"log/slog"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+)
+
+func callerServiceUnaryInterceptor(serviceName string,) grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req any,
+		reply any,
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		ctx = metadata.AppendToOutgoingContext(ctx,"x-caller-service",serviceName,)
+
+		return invoker(
+			ctx,
+			method,
+			req,
+			reply,
+			cc,
+			opts...,
+		)
+	}
+}
+
+func loggingUnaryClientInterceptor(logger *slog.Logger,) grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req any,
+		reply any,
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		start := time.Now()
+		err := invoker(
+				ctx,
+				method,
+				req,
+				reply,
+				cc,
+				opts...,
+			)
+
+		duration := time.Since(start)
+
+		code := status.Code(err)
+
+		logger.InfoContext(
+			ctx,
+			"grpc client call completed",
+			slog.String("method",method,),
+			slog.String("status",code.String(),),
+			slog.Duration("duration",duration,),
+		)
+
+		return err
+	}
+}
+```
+
+## Registrando Interceptor y limpiando cliente
+
+1 - Para registrrlo nos vamos al archivo **client.go**, en la misma ruta
+
+```go
+connection, err :=
+		grpc.NewClient(
+			target,
+			grpc.WithTransportCredentials(
+				insecure.NewCredentials(),
+			),
+			grpc.WithChainUnaryInterceptor(							// -> nuevo
+				callerServiceUnaryInterceptor("task"),				// -> nuevo
+				loggingUnaryClientInterceptor(logger),				// -> nuevo
+			),
+		)
+```
+
+2 - En el archivo **main.go**, en la ruta de **services/task/cmd/api**
+
+```go
+workspaceGRPCClient, err := workspace.NewClient(cfg.WorkspaceGRPCTarget, cfg.WorkspaceGRPCTimeout, logger)
+```
