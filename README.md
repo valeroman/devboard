@@ -2562,6 +2562,25 @@ case errors.Is(err, domain.ErrDepencyTimeout):
 	problem.Details = err.Error()
 ```
 
-
 ## Metadata
 
+1 - Modificamos el archivo **client.go**, en la ruta **services/task/internal/client/workspace** y agregamos esta linea:
+
+```go
+rpcCtx = metadata.AppendToOutgoingContext(rpcCtx, "x-caller-service", "task")
+```
+
+2 - Modificamos el archivo **handler.go**, en la ruta **services/workspace/internal/transport/grpc** y agregamos esto:
+
+```go
+callerService := "unknown"
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		values := md.Get("x-caller-service")
+		if len(values) > 0 {
+			callerService = values[0]
+		}
+	}
+
+	handler.logger.DebugContext(ctx, "grpc request recibido", slog.String("caller_service", callerService), slog.String("method", "ValidateProjectAccess"))
+```
