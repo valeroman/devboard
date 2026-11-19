@@ -2333,3 +2333,97 @@ WORKDIR /src/services/task
 ```
 
 6 - Ejecutamos el comando **make compose-up** para levantar todos los servicios
+
+## Deadlines y cancellation
+
+1 - Modificamos el archivo **config.go** de la ruta de **services/task/config**
+
+```go
+type Config struct {
+	HTTPAddr             string
+	DatabaseURL          string
+	JWTSecret            string
+	WorkspaceGRPCTarget  string
+	WorkspaceGRPCTimeout time.Duration     // -> nuevo
+}
+
+func Load() (Config, error) {
+
+	workspaceGRPCTimeoutValue := envOrDeffault("WORKSPACE_GRPC_TIMEOUT", "1s")		// -> nuevo
+	workspaceGRPCTimerout, err := time.ParseDuration(workspaceGRPCTimeoutValue)		// -> nuevo
+
+	if err != nil {																	// -> nuevo
+		return Config{}, fmt.Errorf("parse WORKSPACE_GRPC_TIMEOUT: %w", err)		// -> nuevo
+	}
+
+	cfg := Config{
+		HTTPAddr:             envOrDeffault("TASK_HTTP_ADDR", ":8093"),
+		DatabaseURL:          envOrDeffault("TASK_DATABASE_URL", ""),
+		JWTSecret:            envOrDeffault("JWT_SECRET", "dev-secret-key-change-in-production-min-32-chars$$"),
+		WorkspaceGRPCTarget:  envOrDeffault("WORKSPACE_GRPC_TARGET", "localhost:9072"),
+		WorkspaceGRPCTimeout: workspaceGRPCTimerout,								// -> nuevo
+	}
+```
+
+2 - Ahora modificamos el archivo **docker-compose.yml**
+
+```Dockerfile
+ task:
+    build:
+      context: .
+      dockerfile: services/task/Dockerfile
+    container_name: devboard_task
+    environment:
+      TASK_HTTP_ADDR: ":8093"
+
+      TASK_DATABASE_URL: >-
+        postgresql://task:task@task-postgres:5432/task?sslmode=disable
+      JWT_SECRET: "${JWT_SECRET}"
+      WORKSPACE_GRPC_TARGET: "workspace:9072"
+      WORKSPACE_GRPC_TIMEOUT: "1s"
+```
+
+3 - Modificamos el archivo **client.go**, en la ruta **services/task/internal/client/workspace** para agregar el timeout
+
+```go
+type Client struct {
+	connection *grpc.ClientConn
+	client     workspacev1.WorkspaceServiceClient
+	timeout    time.Duration						// -> nuevo
+}
+
+func NewClient(target string, timeout time.Duration) (*Client, error) {
+
+	if timeout <= 0 {
+		return nil, fmt.Errorf("El timeout de GRPC Workspace debe ser positivo")  // -> nuevo
+	}
+
+	connection, err :=
+		grpc.NewClient(
+			target,
+			grpc.WithTransportCredentials(
+				insecure.NewCredentials(),
+			),
+		)
+
+	if err != nil {
+		return nil,
+			fmt.Errorf(
+				"create workspace grpc client: %w",
+				err,
+			)
+	}
+
+	return &Client{
+		connection: connection,
+		client:     workspacev1.NewWorkspaceServiceClient(connection),
+		timeout:    timeout,												// -> nuevo
+	}, nil
+}
+```
+
+4 - Ahora modificamos el archivo **main.go** , de la ruta **services/task/cmd/api**
+
+```go
+workspaceGRPCClient, err := workspace.NewClient(cfg.WorkspaceGRPCTarget, cfg.WorkspaceGRPCTimeout)
+```
