@@ -16,7 +16,7 @@ type Config struct {
 
 func Load() (Config, error) {
 
-	workspaceGRPCTimeoutValue := envOrDeffault("WORKSPACE_GRPC_TIMEOUT", "1s")
+	workspaceGRPCTimeoutValue := envOrDeffault("WORKSPACE_GRPC_TIMEOUT", "1ms")
 	workspaceGRPCTimerout, err := time.ParseDuration(workspaceGRPCTimeoutValue)
 
 	if err != nil {

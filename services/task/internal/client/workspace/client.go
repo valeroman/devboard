@@ -64,7 +64,7 @@ func (client *Client) ValidateProjectAccess(ctx context.Context, projectID strin
 
 	rpcCtx = metadata.AppendToOutgoingContext(rpcCtx, "x-caller-service", "task")
 
-	response, err := client.client.ValidateProjectAccess(ctx, &workspacev1.ValidateProjectAccessRequest{
+	response, err := client.client.ValidateProjectAccess(rpcCtx, &workspacev1.ValidateProjectAccessRequest{
 		ProjectId: projectID,
 		UserId:    userID,
 	})
@@ -93,6 +93,9 @@ func mapError(ctx context.Context, err error) error {
 
 	code := status.Code(err)
 	switch code {
+	case codes.DeadlineExceeded:
+		return domain.ErrDependencyTimeout
+
 	case codes.InvalidArgument:
 		return domain.ErrInvalidInput
 
@@ -103,7 +106,7 @@ func mapError(ctx context.Context, err error) error {
 		return domain.ErrForbidden
 
 	case codes.Unavailable:
-		return fmt.Errorf("Servicio de workspace no disponible: %w", err)
+		return domain.ErrDependencyUnavailable
 
 	case codes.Canceled:
 		return context.Canceled
