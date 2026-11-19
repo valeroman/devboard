@@ -2427,3 +2427,141 @@ func NewClient(target string, timeout time.Duration) (*Client, error) {
 ```go
 workspaceGRPCClient, err := workspace.NewClient(cfg.WorkspaceGRPCTarget, cfg.WorkspaceGRPCTimeout)
 ```
+
+## Aplicando Deadlines y cancellation
+
+1 - Agregamos en el archivo **config.go** el timeout
+
+```go
+func (client *Client) ValidateProjectAccess(ctx context.Context, projectID string, userID string) (usecase.ProjectAccess, error) {
+
+	if err := ctx.Err(); err != nil {							// -> nuevo
+		return usecase.ProjectAccess{}, err
+	}
+
+	rpcCtx, cancel := context.WithTimeout(ctx, client.timeout)	// -> nuevo
+
+	defer cancel()												// -> nuevo
+
+	response, err := client.client.ValidateProjectAccess(ctx, &workspacev1.ValidateProjectAccessRequest{
+		ProjectId: projectID,
+		UserId:    userID,
+	})
+
+	if err != nil {
+		return usecase.ProjectAccess{}, mapError(rpcCtx, err)
+	}
+
+	return usecase.ProjectAccess{
+		WorkspaceID: response.GetWorkspaceId(),
+	}, nil
+}
+
+func (client *Client) Close() error {
+	if err := client.connection.Close(); err != nil {
+		return fmt.Errorf("Error al cerrar conexión grpc: %w", err)
+	}
+	return nil
+}
+
+func mapError(ctx context.Context, err error) error {			// -> nuevo
+
+	if errors.Is(ctx.Err(), context.Canceled) {					// -> nuevo
+		return context.Canceled
+	}
+
+	code := status.Code(err)
+	switch code {
+	case codes.InvalidArgument:
+		return domain.ErrInvalidInput
+
+	case codes.NotFound:
+		return domain.ErrNotFound
+
+	case codes.PermissionDenied:
+		return domain.ErrForbidden
+
+	case codes.Unavailable:
+		return fmt.Errorf("Servicio de workspace no disponible: %w", err)
+
+	case codes.Canceled:										// -> nuevo
+		return context.Canceled
+
+	default:
+		return fmt.Errorf("Servicio de workspace gRPC falló: %w", err)
+	}
+}
+```
+
+2 - Modificamos el archivo **handler.go**, en la ruta **services/workspace/internal/transport/grpc**
+
+```go
+func (handler *Handler) mapError(
+	ctx context.Context,
+	err error,
+) error {
+	switch {
+	case errors.Is(err, context.Canceled):									// -> nuevo
+		return status.Error(codes.Canceled, "request cancelada")			// -> nuevo
+
+	case errors.Is(err, context.DeadlineExceeded):							// -> nuevo
+		return status.Error(codes.DeadlineExceeded, "deadline excedido")	// -> nuevo
+
+	case errors.Is(
+		err,
+		domain.ErrInvalidInput,
+	):
+		return status.Error(
+			codes.InvalidArgument,
+			"project_id y user_id son requeridos",
+		)
+
+```
+
+3 - Se modifica el archivo **errors.go**, en la ruta **services/task/internal/domain**
+
+```go
+package domain
+
+import "errors"
+
+// Sentinel Errors
+var (
+	// ErrNotFound reutilizable
+	ErrNotFound = errors.New("recurso no encontrado")
+	// ErrAlreadyExists reutilizable
+	ErrAlreadyExists = errors.New("el resurso no existe")
+	// ErrUnauthorized reutilizable
+	ErrUnauthorized = errors.New("no autorizado")
+	// ErrForbidden reutilizable
+	ErrForbidden = errors.New("acceso prohibido")
+	// ErrInvalidInput reutilizable
+	ErrInvalidInput = errors.New("datos de entrada inválidos")
+	// ErrInternal reutilizable
+	ErrInternal = errors.New("error interno")
+	//ErrDependencyUnavailable reutilizable
+	ErrDependencyUnavailable = errors.New("Dependencia no disponible")	// -> nuevo
+	//ErrDepencyTimeout
+	ErrDepencyTimeout = errors.New("Tiempo excedido")					// -> nuevo
+)
+
+```
+
+4 - Se modifica el archivo **response.go**, en la ruta **services/task/internal/handler**
+
+```go
+case errors.Is(err, domain.ErrDependencyUnavailable):
+		problem.Type = problemBaseURL + "/not-found"
+		problem.Title = "Recurso no encontrado"
+		problem.Status = http.StatusServiceUnavailable
+		problem.Details = err.Error()
+case errors.Is(err, domain.ErrDepencyTimeout):
+	problem.Type = problemBaseURL + "/not-found"
+	problem.Title = "Recurso tiempo de respuesta expirado"
+	problem.Status = http.StatusGatewayTimeout
+	problem.Details = err.Error()
+```
+
+
+## Metadata
+

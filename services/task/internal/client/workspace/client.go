@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -51,13 +52,22 @@ func NewClient(target string, timeout time.Duration) (*Client, error) {
 }
 
 func (client *Client) ValidateProjectAccess(ctx context.Context, projectID string, userID string) (usecase.ProjectAccess, error) {
+
+	if err := ctx.Err(); err != nil {
+		return usecase.ProjectAccess{}, err
+	}
+
+	rpcCtx, cancel := context.WithTimeout(ctx, client.timeout)
+
+	defer cancel()
+
 	response, err := client.client.ValidateProjectAccess(ctx, &workspacev1.ValidateProjectAccessRequest{
 		ProjectId: projectID,
 		UserId:    userID,
 	})
 
 	if err != nil {
-		return usecase.ProjectAccess{}, mapError(err)
+		return usecase.ProjectAccess{}, mapError(rpcCtx, err)
 	}
 
 	return usecase.ProjectAccess{
@@ -72,7 +82,12 @@ func (client *Client) Close() error {
 	return nil
 }
 
-func mapError(err error) error {
+func mapError(ctx context.Context, err error) error {
+
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return context.Canceled
+	}
+
 	code := status.Code(err)
 	switch code {
 	case codes.InvalidArgument:
@@ -86,6 +101,9 @@ func mapError(err error) error {
 
 	case codes.Unavailable:
 		return fmt.Errorf("Servicio de workspace no disponible: %w", err)
+
+	case codes.Canceled:
+		return context.Canceled
 
 	default:
 		return fmt.Errorf("Servicio de workspace gRPC falló: %w", err)
