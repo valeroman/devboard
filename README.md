@@ -2265,3 +2265,71 @@ func Load() (Config, error) {
 	// Use cases
 	taskUseCase := usecase.NewTaskUseCase(taskRepository, taskRepository, workspaceGRPCClient) -> agregar workspaceGRPCClient
 ```
+
+## Modificación en Docker y dependencias para que Task se comunique con Workspace
+
+1 - En el archivo **docker-compose.yml** agregamos lo siguiente en task:
+
+```yaml
+task:
+  build:
+    context: .
+    dockerfile: services/task/Dockerfile
+  container_name: devboard_task
+  environment:
+    TASK_HTTP_ADDR: ":8093"
+
+    TASK_DATABASE_URL: >-
+      postgresql://task:task@task-postgres:5432/task?sslmode=disable
+    JWT_SECRET: "${JWT_SECRET}"
+    WORKSPACE_GRPC_TARGET: "workspace:9072" # -> nuevo
+  ports:
+    - "8093:8093"
+  depends_on:
+    task-postgres:
+      condition: service_healthy
+
+    task-migrate:
+      condition: service_completed_successfully
+
+    workspace: # -> nuevo
+      condition: service_healthy # -> nuevo
+```
+
+2 - Instalar las dependencias ejecutando el comando, pero primero debemos estar en la consola en **/services/task**
+
+```go
+	go mod tidy
+```
+
+3 - Como no instalo nada debemos ir al **go.mod** del **workspace** y copiar las siguientes lineas a nuestro archivo **go.mod** del **task**
+
+```go
+github.com/valeroman/devboard/contracts v0.0.0
+
+replace github.com/valeroman/devboard/contracts => ../../contracts
+```
+
+4 - Corremos el comando **go mod tidy** y todo funciona bien
+
+5 - Actualizamos el archivo **Dockerfile** del **services/task**
+
+```Dockerfile
+COPY contracts/go.mod contracts/go.sum ./contracts/
+COPY services/task/go.mod services/task/go.sum ./services/task/
+
+WORKDIR /src/services/task
+
+RUN go mod download \
+    && go mod verify
+
+WORKDIR /src
+
+COPY contracts ./contracts
+COPY services/task ./services/task
+
+WORKDIR /src/services/task
+
+```
+
+6 - Ejecutamos el comando **make compose-up** para levantar todos los servicios
