@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	workspacev1 "github.com/valeroman/devboard/contracts/gen/go/devboard/workspace/v1"
-	"github.com/valeroman/devboard/internal/domain"
+	"github.com/valeroman/devboard/services/task/internal/domain"
 	"github.com/valeroman/devboard/services/task/internal/usecase"
 
 	"google.golang.org/grpc"

@@ -290,13 +290,13 @@ networks:
   app:
 
   identity-data:
-    internal: true
+    internal: false
 
   workspace-data:
-    internal: true
+    internal: false
 
   task-data:
-    internal: true
+    internal: false
 
   legacy-data:
-    internal: true
+    internal: false
