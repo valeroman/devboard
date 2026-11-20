@@ -183,12 +183,25 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "ID del proyecto"
 // @Success 200 {object} PaginatedResponse[taskResponse]
 // @Failure 404 {object} ProblemDetails
+// @Failure 401 {object} ProblemDetails
+// @Failure 403 {object} ProblemDetails
+// @Failure 503 {object} ProblemDetails
+// @Failure 504 {object} ProblemDetails
 // @Router /projects/{id}/tasks [get]
 // @Security BearerAuth
 func (h *TaskHandler) ListByProject(w http.ResponseWriter, r *http.Request) {
+
+	requesterID := middlewares.GetUserID(r)
+
+	if requesterID == "" {
+		RespondError(w, r, h.logger, domain.ErrUnauthorized)
+		return
+	}
+
 	projectID := r.PathValue("id")
 
-	task, err := h.usecase.ListProjectTask(r.Context(), projectID)
+	task, err := h.usecase.ListProjectTask(r.Context(), projectID, requesterID)
+
 	if err != nil {
 		RespondError(w, r, h.logger, err)
 		return
