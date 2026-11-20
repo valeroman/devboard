@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/valeroman/devboard/services/workspace/internal/domain"
@@ -113,8 +114,12 @@ func (uc *WorkspaceUseCase) RemoveMember(ctx context.Context, workspaceID, reque
 // requireMember verifica que el usuario sea miembro del workspace.
 func (uc *WorkspaceUseCase) requireMember(ctx context.Context, workspaceID, userID string) error {
 	_, err := uc.repo.GetMember(ctx, workspaceID, userID)
-	if err != nil {
+	if errors.Is(err, domain.ErrNotFound) {
 		return fmt.Errorf("accesso al workspace denegado: %w", domain.ErrForbidden)
+	}
+
+	if err != nil {
+		return fmt.Errorf("verificando membresía del workspace: %w", err)
 	}
 
 	return nil
@@ -124,8 +129,12 @@ func (uc *WorkspaceUseCase) requireMember(ctx context.Context, workspaceID, user
 func (uc *WorkspaceUseCase) requireAdmin(ctx context.Context, workspaceID, userID string) error {
 	member, err := uc.repo.GetMember(ctx, workspaceID, userID)
 
-	if err != nil {
+	if errors.Is(err, domain.ErrNotFound) {
 		return fmt.Errorf("acceso al workspace deegado: %w", domain.ErrForbidden)
+	}
+
+	if err != nil {
+		return fmt.Errorf("verificando membresía del workspace: %w", err)
 	}
 
 	if member.Role != domain.WorkspaceRoleAdmin {
