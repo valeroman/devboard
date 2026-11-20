@@ -70,6 +70,11 @@ func RespondError(writer http.ResponseWriter, request *http.Request, logger *slo
 		problem.Title = "Solicitud no válida"
 		problem.Status = http.StatusBadRequest
 		problem.Details = err.Error()
+	case errors.Is(err, domain.ErrTaskNotAssignable):
+		problem.Type = problemBaseURL + "/task-not-assignable"
+		problem.Title = "La tarea no puede asignarse a su estdo actual"
+		problem.Status = http.StatusConflict
+		problem.Details = err.Error()
 	default:
 		problem.Type = problemBaseURL + "/internal"
 		problem.Title = "Error interno del servidor"
