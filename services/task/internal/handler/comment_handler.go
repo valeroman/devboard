@@ -52,10 +52,10 @@ func toCommentResponse(c *domain.Comment) commentResponse {
 //
 // @Summary     Crear comentario
 // @Description Agrega un comentario a una tarea
-// @Failure 401 {object} ProblemDetails
-// @Failure 403 {object} ProblemDetails
-// @Failure 503 {object} ProblemDetails
-// @Failure 504 {object} ProblemDetails
+// @Failure 	401 {object} ProblemDetails
+// @Failure 	403 {object} ProblemDetails
+// @Failure 	503 {object} ProblemDetails
+// @Failure 	504 {object} ProblemDetails
 // @Tags        comments
 // @Accept      json
 // @Produce     json
@@ -105,10 +105,10 @@ func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 //
 // @Summary     Listar comentarios
 // @Description Lista todos los comentarios de una tarea
-// @Failure 401 {object} ProblemDetails
-// @Failure 403 {object} ProblemDetails
-// @Failure 503 {object} ProblemDetails
-// @Failure 504 {object} ProblemDetails
+// @Failure 	401 {object} ProblemDetails
+// @Failure 	403 {object} ProblemDetails
+// @Failure 	503 {object} ProblemDetails
+// @Failure 	504 {object} ProblemDetails
 // @Tags        comments
 // @Produce     json
 // @Param       id  path     string true "ID de la tarea"
@@ -156,6 +156,10 @@ func (h *CommentHandler) ListByTask(w http.ResponseWriter, r *http.Request) {
 // @Param       id path string true "ID del comentario"
 // @Success     204 "Sin contenido"
 // @Failure     403 {object} ProblemDetails
+// @Failure 	401 {object} ProblemDetails
+// @Failure 	403 {object} ProblemDetails
+// @Failure 	503 {object} ProblemDetails
+// @Failure 	504 {object} ProblemDetails
 // @Security    BearerAuth
 // @Router      /comments/{id} [delete]
 func (h *CommentHandler) Delete(w http.ResponseWriter, r *http.Request) {
