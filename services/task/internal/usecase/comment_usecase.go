@@ -23,14 +23,14 @@ type AuthorizedTaskReader interface {
 // CommentUseCase orquesta las operaciones de comentarios
 type CommentUseCase struct {
 	commentRepo CommentRepository
-	taskAccess   AuthorizedTaskReader
+	taskAccess  AuthorizedTaskReader
 }
 
 // NewCommentUseCase constructor
 func NewCommentUseCase(commentRepo CommentRepository, taskAccess AuthorizedTaskReader) *CommentUseCase {
 	return &CommentUseCase{
 		commentRepo: commentRepo,
-		taskAccess:   taskAccess,
+		taskAccess:  taskAccess,
 	}
 }
 
@@ -62,8 +62,19 @@ func (uc *CommentUseCase) CreateComment(ctx context.Context, taskID, authorID, c
 }
 
 // ListTaskComments lista los comentarios de una tarea
-func (uc *CommentUseCase) ListTaskComments(ctx context.Context, taskID string) ([]*domain.Comment, error) {
-	comments, err := uc.commentRepo.ListByTask(ctx, taskID)
+func (uc *CommentUseCase) ListTaskComments(ctx context.Context, taskID string, requesterID string) ([]*domain.Comment, error) {
+
+	if requesterID == "" {
+		return nil, domain.ErrUnauthorized
+	}
+
+	task, err := uc.taskAccess.GetTask(ctx, taskID, requesterID)
+
+	if err != nil {
+		return nil, fmt.Errorf("validando acceso a la tarea: %w", err)
+	}
+
+	comments, err := uc.commentRepo.ListByTask(ctx, task.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("listando comentarios: %w", err)
