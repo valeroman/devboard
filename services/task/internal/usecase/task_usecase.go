@@ -37,13 +37,13 @@ func NewTaskUseCase(commands TaskCommandRepository, queries TaskQueryRepository,
 
 // CreateTask método para crear tarea
 func (uc *TaskUseCase) CreateTask(ctx context.Context, projectID, title, description, createdBy string) (*domain.Task, error) {
-	
+
 	_, err := uc.projectAccess.ValidateProjectAccess(ctx, projectID, createdBy)
 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	task := domain.NewTask(projectID, title, description, createdBy)
 
 	if err := uc.commands.Create(ctx, task); err != nil {
@@ -54,11 +54,17 @@ func (uc *TaskUseCase) CreateTask(ctx context.Context, projectID, title, descrip
 }
 
 // GetTask metodo para obtener una tarea por id
-func (uc *TaskUseCase) GetTask(ctx context.Context, id string) (*domain.Task, error) {
+func (uc *TaskUseCase) GetTask(ctx context.Context, id string, requesterID string) (*domain.Task, error) {
 	task, err := uc.queries.GetByID(ctx, id)
 
 	if err != nil {
 		return nil, fmt.Errorf("obteniendo tarea %s: %w", id, err)
+	}
+
+	_, err = uc.projectAccess.ValidateProjectAccess(ctx, task.ProjectID, requesterID)
+
+	if err != nil {
+		return nil, fmt.Errorf("Validando acceso a la tarea %s: %w", id, err)
 	}
 
 	return task, nil
